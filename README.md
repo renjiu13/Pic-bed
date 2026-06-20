@@ -1,68 +1,52 @@
 # Pic-Bed - 极轻量私有图床
 
-专为低内存设备设计的单文件私有图床系统，完美支持玩客云等ARM32设备。
+专为低内存设备设计的单文件私有图床，支持玩客云等 ARM32 设备。纯 Go 编写，`CGO_ENABLED=0` 静态编译，零外部依赖。
 
 ## ✨ 核心特性
 
-- 🚀 **极低内存占用**：闲置 8~15MB，峰值不超过 25MB
-- 📦 **单文件部署**：纯静态编译，零依赖，下载即运行
-- 🔧 **全架构支持**：amd64 / arm64 / armv7（玩客云32位）
-- 🔒 **安全加固**：扩展名白名单、路径防护、请求体硬限制
-- 🎯 **PicList 兼容**：完美支持 PicList 自定义图床
-- ⚙️ **功能开关**：灵活配置，按需开启
+- 🚀 **极低内存占用**：闲置约 8~15MB，峰值不超过 25MB
+- 📦 **单文件部署**：下载二进制 + `config.json` 即可运行
+- 🔧 **多平台支持**：Linux（amd64 / arm64 / armv7）、Windows、macOS
+- 🔒 **基础安全**：扩展名白名单、路径遍历防护、请求体大小硬限制、可选 Bearer 鉴权
+- 🎯 **PicList 兼容**：支持 PicList 自定义图床配置
+- ⚙️ **按需开启**：日志、删除、列表、自动清理等功能默认关闭，手动启用
 
-## 🎛️ 完整功能开关
+## 📡 路由一览
 
-| 功能 | 配置项 | 默认值 | 说明 |
-|------|--------|--------|------|
-| 📝 操作日志 | `enable_log` | ❌ 关闭 | 记录上传/删除/访问/错误，用于审计追踪 |
-| 🗑️ 删除接口 | `enable_delete` | ❌ 关闭 | `DELETE /img/{path}` 删除图片 |
-| 📋 文件列表 | `enable_file_list` | ❌ 关闭 | Web管理页面 `/list` 查看所有图片 |
-| 🧹 自动清理 | `enable_auto_clean` | ❌ 关闭 | 定期删除超过N小时的文件 |
-| 📄 原始文件名 | `keep_original_name` | ❌ 关闭 | 保留图片原始文件名+随机后缀 |
-| ⏱️ 请求超时 | `timeout` | 30秒 | 上传/下载超时时间，防止卡顿 |
-| 📁 文件类型 | `allowed_types` | 5种 | 白名单配置，灵活控制允许格式 |
-| 🖼️ 首页头像 | `home_avatar_url` | 空 | 首页自定义头像（本地路径或网络图片URL） |
+| 路径 | 方法 | 说明 | 前置条件 |
+|------|------|------|----------|
+| `/` | GET | 首页欢迎页，支持自定义头像 | 无 |
+| `/upload` | POST | 上传图片，表单字段名 `file` | 无；`api_key` 非空时需 Bearer 鉴权 |
+| `/img/{年}/{月}/{文件名}` | GET / HEAD | 预览图片 | 无 |
+| `/img/{年}/{月}/{文件名}` | DELETE | 删除图片 | `enable_delete: true` |
+| `/list` | GET | 图片管理页面（HTML） | `enable_file_list: true` |
+| `/list?format=json` | GET | 图片列表（JSON） | `enable_file_list: true` |
 
-## 📦 架构版本
+> 图片路径统一为 `/img/年/月/文件名`，例如 `/img/2026/06/abc123.jpg`
 
-| 文件名 | 架构 | 适用设备 | 大小 |
-|--------|------|----------|------|
-| `pic-bed-linux-amd64` | x86-64 | 常规云服务器、PC | ~6.7MB |
-| `pic-bed-linux-arm64` | ARM64/aarch64 | 树莓派4/5、ARM服务器 | ~6.5MB |
-| `pic-bed-linux-armv7` | ARMv7 32位 | **玩客云**、树莓派3及更早 | ~6.6MB |
+## 🔧 完整配置说明
 
-## 🚀 快速部署
+首次运行会在工作目录自动生成 `config.json`。也可参考 `examples/config.example.json`。
 
-### 1. 玩客云（ARMv7 32位）
-```bash
-mkdir -p /opt/pic-bed && cd /opt/pic-bed
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `port` | int | `8080` | HTTP 监听端口 |
+| `storage_dir` | string | `"./data"` | 图片存储目录 |
+| `max_size` | int | `10` | 单文件大小上限（MB） |
+| `api_key` | string | `""` | Bearer Token；**空字符串表示关闭鉴权** |
+| `timeout` | int | `30` | 读写超时（秒） |
+| `enable_log` | bool | `false` | 是否记录操作日志 |
+| `enable_delete` | bool | `false` | 是否允许 DELETE 删除图片 |
+| `enable_file_list` | bool | `false` | 是否开放 `/list` 管理页 |
+| `enable_auto_clean` | bool | `false` | 是否启用自动清理 |
+| `keep_original_name` | bool | `false` | 保留原始文件名 + 随机后缀 |
+| `allowed_types` | []string | `jpg,jpeg,png,gif,webp` | 允许上传的扩展名白名单 |
+| `auto_clean_hours` | int | `720` | 自动清理阈值（小时），默认 720 = 30 天 |
+| `log_file` | string | `"./pic-bed.log"` | 日志文件路径 |
+| `home_avatar_url` | string | `""` | 首页头像 URL，空则显示默认 emoji |
 
-# 下载玩客云专用版本
-wget https://github.com/your-repo/releases/download/v2.0/pic-bed-linux-armv7 -O pic-bed
-chmod +x pic-bed
+示例配置：
 
-# 首次运行自动生成配置
-./pic-bed
-```
-
-### 2. systemd 开机自启
-```bash
-# 复制服务文件
-cp examples/pic-bed.service /etc/systemd/system/
-
-# 启动并设置开机自启
-systemctl daemon-reload
-systemctl enable --now pic-bed
-
-# 查看状态
-systemctl status pic-bed
-journalctl -u pic-bed -f
-```
-
-## 🔧 配置说明
-
-首次运行自动生成 `config.json`：
 ```json
 {
   "port": 8080,
@@ -82,42 +66,81 @@ journalctl -u pic-bed -f
 }
 ```
 
-修改后重启生效：`systemctl restart pic-bed`
+修改配置后需重启服务生效。
 
-### 首页配置
+### 首页头像
 
-访问 `http://服务器IP:8080/` 可看到欢迎页面。通过 `home_avatar_url` 自定义头像：
+访问 `http://服务器IP:8080/` 查看欢迎页。通过 `home_avatar_url` 自定义头像：
 
 - 留空：显示默认 emoji 头像
 - 网络图片：`"home_avatar_url": "https://example.com/avatar.jpg"`
-- 已上传图片：`"home_avatar_url": "/img/2026/06/xxx.jpg"`
+- 本地上传图片：`"home_avatar_url": "/img/2026/06/xxx.jpg"`
 
-## 📡 API 接口
+### 自动清理
+
+1. 设置 `enable_auto_clean: true`
+2. 按需调整 `auto_clean_hours`（默认 `720`，即 30 天）
+3. 重启服务后，后台每小时检查一次，删除超过阈值的文件
+
+> 注意：时间单位为**小时**（`auto_clean_hours`），不是天。旧版文档中的 `auto_clean_days` 已废弃。
+
+## 🔒 安全说明
+
+当前已实现的安全措施：
+
+| 措施 | 实现方式 |
+|------|----------|
+| 文件类型限制 | 扩展名白名单（`allowed_types`） |
+| 路径遍历防护 | `IsPathSafe` 校验，禁止跳出存储目录 |
+| 请求体限制 | `http.MaxBytesReader` 硬限制上传大小 |
+| 可选鉴权 | `api_key` 非空时，上传接口需 `Authorization: Bearer <key>` |
+| 文件名消毒 | 保留原名模式下过滤危险字符 |
+
+当前**未实现**（请勿在文档中误认为已具备）：
+
+- ❌ 魔数 / MIME 真实类型检测（仅靠扩展名，可被伪装文件绕过）
+- ❌ 图片压缩（`enable_compress` 不存在，无此配置项）
+- ❌ 上传频率限制
+- ❌ IP 白名单
+
+## 📡 API 示例
 
 ### 上传图片
+
 ```bash
 curl -F "file=@test.jpg" http://服务器IP:8080/upload
 ```
-返回：
+
+响应：
+
 ```json
 {"success":true,"url":"/img/2026/06/171846123456789abcdef.jpg","message":"upload success"}
 ```
 
 ### 预览图片
+
 ```
 GET http://服务器IP:8080/img/2026/06/文件名.jpg
 ```
 
-### 删除图片（需开启 enable_delete）
+### 删除图片（需 `enable_delete: true`）
+
 ```bash
 curl -X DELETE http://服务器IP:8080/img/2026/06/文件名.jpg
 ```
 
-### 文件列表（需开启 enable_file_list）
+### 文件列表（需 `enable_file_list: true`）
+
 ```
-http://服务器IP:8080/list          # HTML管理页面
-http://服务器IP:8080/list?format=json  # JSON格式
+GET http://服务器IP:8080/list              # HTML 管理页
+GET http://服务器IP:8080/list?format=json   # JSON 格式
 ```
+
+## 🔐 开启鉴权
+
+1. 在 `config.json` 中设置 `api_key` 为自定义密钥
+2. 上传时携带请求头：`Authorization: Bearer 你的密钥`
+3. PicList 请求头改为：`{"Authorization": "Bearer 你的密钥"}`
 
 ## 🎯 PicList 配置
 
@@ -126,28 +149,79 @@ http://服务器IP:8080/list?format=json  # JSON格式
 | 接口网址 | `http://服务器IP:8080/upload` |
 | 请求方法 | POST |
 | 表单参数名 | `file` |
-| 请求头 | `{}` |
+| 请求头 | `{}`（开启鉴权时填 Bearer Token） |
 | 请求体 | `{}` |
 | 自定义前缀 | `http://服务器IP:8080` |
 | 网站路径 | 留空 |
-| 返回数据URL路径 | `url` |
+| 返回数据 URL 路径 | `url` |
 
-> ⚠️ 注意：PicList 部分版本不支持 `$.url` 写法，直接填 `url` 即可
+> PicList 部分版本不支持 `$.url` 写法，直接填 `url` 即可。
 
-## 🔐 开启鉴权
+## 🚀 快速部署
 
-1. 在 `config.json` 中设置 `api_key` 为自定义密钥
-2. PicList 请求头改为：`{"Authorization": "Bearer 你的密钥"}`
+### Linux（玩客云 ARMv7）
 
-## 🧹 自动清理
+```bash
+mkdir -p /opt/pic-bed && cd /opt/pic-bed
+wget https://github.com/your-repo/releases/download/v2.0/pic-bed-linux-armv7 -O pic-bed
+chmod +x pic-bed
+./pic-bed   # 首次运行自动生成 config.json
+```
 
-1. 设置 `enable_auto_clean: true`
-2. 设置 `auto_clean_hours: 720`（清理超过720小时/30天的文件）
-3. 重启服务，每小时自动检查并清理过期文件
+### Windows
+
+```powershell
+# 下载 pic-bed-windows-amd64.exe，放到工作目录
+.\pic-bed-windows-amd64.exe
+# 同目录生成 config.json 后即可使用
+```
+
+### systemd 开机自启（Linux）
+
+```bash
+cp examples/pic-bed.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now pic-bed
+systemctl status pic-bed
+journalctl -u pic-bed -f
+```
+
+## 🔨 自行编译
+
+程序入口为 `./cmd/pic-bed`（`build.sh` 编译此路径）。
+
+### 一键多架构编译（Linux / macOS 终端）
+
+```bash
+chmod +x build.sh
+./build.sh
+```
+
+产物：
+
+| 文件名 | 平台 |
+|--------|------|
+| `pic-bed-linux-amd64` | Linux x86-64 |
+| `pic-bed-linux-arm64` | Linux ARM64 |
+| `pic-bed-linux-armv7` | Linux ARMv7（玩客云） |
+| `pic-bed-windows-amd64.exe` | Windows x86-64 |
+| `pic-bed-darwin-amd64` | macOS Intel |
+| `pic-bed-darwin-arm64` | macOS Apple Silicon |
+
+### 单独交叉编译
+
+```bash
+# Windows exe
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o pic-bed.exe ./cmd/pic-bed
+
+# 本机直接运行（开发调试）
+go run ./cmd/pic-bed
+```
 
 ## 📝 日志格式
 
-日志文件 `pic-bed.log` 格式：
+开启 `enable_log` 后，日志写入 `log_file` 指定路径：
+
 ```
 2026/06/15 22:00:00 [UPLOAD] IP:192.168.1.100 File:xxx.jpg - URL:/img/2026/06/xxx.jpg Size:123456 bytes
 2026/06/15 22:00:01 [DELETE] IP:192.168.1.100 File:xxx.jpg - File deleted
@@ -158,37 +232,27 @@ http://服务器IP:8080/list?format=json  # JSON格式
 
 ```
 pic-bed/
-├── cmd/
-│   └── pic-bed/          # 主程序入口
+├── cmd/pic-bed/          # 主程序入口（编译入口）
 ├── internal/
-│   ├── config/           # 配置管理
-│   ├── logger/           # 日志记录
-│   ├── security/         # 安全校验
-│   ├── storage/          # 存储与清理
-│   └── handler/          # HTTP处理器
-├── bin/                  # 编译产物（三架构）
-├── examples/             # 示例配置
-│   ├── pic-bed.service
-│   └── config.example.json
-├── build.sh              # 编译脚本
+│   ├── config/           # 配置加载
+│   ├── handler/          # HTTP 路由处理
+│   ├── logger/           # 操作日志
+│   ├── security/         # 扩展名校验、路径防护
+│   └── storage/          # 文件存储与自动清理
+├── examples/
+│   ├── config.example.json
+│   └── pic-bed.service
+├── build.sh              # 多架构编译脚本
 ├── go.mod
 └── README.md
 ```
 
-## 🔨 自行编译
+## 📊 性能参考
 
-```bash
-chmod +x build.sh
-./build.sh
-```
-
-## 📊 性能指标
-
-- 闲置内存：8~12MB
-- 峰值内存：15~25MB
-- 二进制体积：~6.5MB
-- 并发：Go原生协程，支持高并发
-- 依赖：纯静态，零外部依赖
+- 闲置内存：约 8~12MB
+- 峰值内存：约 15~25MB
+- 二进制体积：约 6~7MB（`-ldflags="-s -w"` 编译）
+- 并发：Go 原生协程，适合中小流量私有图床
 
 ## 📄 License
 
