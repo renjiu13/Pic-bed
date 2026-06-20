@@ -48,6 +48,7 @@ func main() {
 	fmt.Printf("监听端口: %d\n", cfg.Port)
 	fmt.Printf("存储目录: %s\n", cfg.StorageDir)
 	fmt.Printf("单文件上限: %d MB\n", cfg.MaxSize)
+	fmt.Printf("首页地址: http://0.0.0.0:%d/\n", cfg.Port)
 	fmt.Printf("上传接口: POST http://0.0.0.0:%d/upload\n", cfg.Port)
 	fmt.Printf("预览格式: GET  http://服务器IP:%d/img/年/月/文件名\n", cfg.Port)
 

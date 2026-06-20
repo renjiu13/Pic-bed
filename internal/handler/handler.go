@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -28,16 +29,21 @@ type ListResponse struct {
 	Count   int                `json:"count"`
 }
 
-// getClientIP 获取客户端IP
+// getClientIP 获取访问者真实 IP（优先读反向代理头，回退 RemoteAddr）
 func getClientIP(r *http.Request) string {
-	ip := r.Header.Get("X-Forwarded-For")
-	if ip == "" {
-		ip = r.Header.Get("X-Real-IP")
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if ip := strings.TrimSpace(strings.Split(xff, ",")[0]); ip != "" {
+			return ip
+		}
 	}
-	if ip == "" {
-		ip = strings.Split(r.RemoteAddr, ":")[0]
+	if ip := strings.TrimSpace(r.Header.Get("X-Real-IP")); ip != "" {
+		return ip
 	}
-	return ip
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 // HandleUpload 处理上传
@@ -153,9 +159,8 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-
 	cfg := config.Get()
-	host := r.Host
+	clientIP := getClientIP(r)  // 获取访问者IP
 	avatarURL := cfg.HomeAvatarURL
 	
 	tmpl := `
@@ -178,19 +183,16 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
             padding: 40px 20px;
             background: #fff;
         }
-
         .container {
             text-align: center;
             max-width: 500px;
         }
-
         h1 {
             font-size: 2rem;
             font-weight: 700;
             color: #000;
             margin-bottom: 20px;
         }
-
         .avatar {
             width: 300px;
             height: 300px;
@@ -202,12 +204,10 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
             justify-content: center;
             position: relative;
         }
-
         .avatar.default {
             background: linear-gradient(135deg, #ff6b9d 0%, #ffa3c4 100%);
             font-size: 120px;
         }
-
         .avatar.default::before {
             content: "✨";
             position: absolute;
@@ -216,7 +216,6 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
             font-size: 40px;
             animation: twinkle 2s ease-in-out infinite;
         }
-
         .avatar.default::after {
             content: "⭐";
             position: absolute;
@@ -225,37 +224,31 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
             font-size: 25px;
             animation: twinkle 2s ease-in-out infinite 0.5s;
         }
-
         .avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-
         .avatar .face {
             font-size: 150px;
             z-index: 1;
         }
-
         @keyframes twinkle {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(0.8); }
         }
-
         p {
             font-size: 1.1rem;
             color: #333;
             margin-bottom: 10px;
             line-height: 1.6;
         }
-
         .ip {
             font-size: 1rem;
             color: #666;
             font-family: monospace;
             margin-top: 10px;
         }
-
         .footer {
             margin-top: 40px;
             font-size: 0.85rem;
@@ -276,22 +269,19 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
             <span class="face">😎</span>
         </div>
         {{end}}
-
         <p>I serve photos. You'll need a URL.</p>
         <p></p>
-        <p class="ip">{{.Host}}</p>
+        <p class="ip">{{.ClientIP}}</p>
     </div>
-
     <div class="footer">
         Pic Bed · 极轻量私有图床
     </div>
 </body>
 </html>`
-
 	t, _ := template.New("home").Parse(tmpl)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	t.Execute(w, map[string]interface{}{
-		"Host":      host,
+		"ClientIP":  clientIP,  // 改成访问者IP
 		"AvatarURL": avatarURL,
 	})
 }
