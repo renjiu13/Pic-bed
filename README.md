@@ -244,10 +244,9 @@ go run ./cmd/pic-bed
 推送 `v*` 标签后，GitHub Actions 会自动：
 
 1. 编译 6 个平台的二进制
-2. UPX 压缩
-3. 生成 `SHA256SUMS` 校验和
-4. 创建 GitHub Release 并上传产物
-5. 自动更新 README 中的版本号和下载链接
+2. 生成 `SHA256SUMS` 校验和
+3. 创建 GitHub Release 并上传产物
+4. 自动更新 README 中的版本号和下载链接
 
 ```bash
 git tag v1.0.0
