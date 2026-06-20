@@ -34,7 +34,6 @@ func main() {
 	http.HandleFunc("/", handler.HandleHome)
 	http.HandleFunc("/upload", handler.AuthMiddleware(handler.HandleUpload))
 	http.HandleFunc("/img/", handler.HandleImage)
-	http.HandleFunc("/list", handler.HandleFileList)
 
 	// 启动信息
 	fmt.Println("=== 极轻量图床启动成功 ===")
@@ -44,14 +43,13 @@ func main() {
 	fmt.Printf("首页地址: http://0.0.0.0:%d/\n", cfg.Port)
 	fmt.Printf("上传接口: POST http://0.0.0.0:%d/upload\n", cfg.Port)
 	fmt.Printf("预览格式: GET  http://服务器IP:%d/img/年/月/文件名\n", cfg.Port)
-	fmt.Printf("文件列表: http://服务器IP:%d/list\n", cfg.Port)
 	if cfg.APIKey != "" {
 		fmt.Println("鉴权状态: 已开启 Bearer Token")
 	} else {
 		fmt.Println("鉴权状态: 未开启（公开上传）")
 	}
-	fmt.Printf("功能开关: 日志=%v 删除=%v 列表=%v 自动清理=%v\n",
-		cfg.EnableLog, cfg.EnableDelete, cfg.EnableFileList, cfg.EnableAutoClean)
+	fmt.Printf("功能开关: 日志=%v 删除=%v 自动清理=%v\n",
+		cfg.EnableLog, cfg.EnableDelete, cfg.EnableAutoClean)
 
 	// 启动服务
 	server := &http.Server{

@@ -17,7 +17,6 @@ type Config struct {
 	// 功能开关 - 默认全部关闭
 	EnableLog        bool     `json:"enable_log"`         // 📝 操作日志：记录上传/删除/访问/错误
 	EnableDelete     bool     `json:"enable_delete"`      // 🗑️ 删除接口：DELETE /img/{path} 删除图片
-	EnableFileList   bool     `json:"enable_file_list"`   // 📋 文件列表：/list 管理页面查看所有图片
 	EnableAutoClean  bool     `json:"enable_auto_clean"`  // 🧹 自动清理：定期删除超过N小时的文件
 	KeepOriginalName bool     `json:"keep_original_name"` // 📄 原始文件名：保留上传文件名+随机后缀
 
@@ -46,7 +45,6 @@ var defaultConfig = Config{
 	// 功能开关 - 默认全部关闭，按需开启
 	EnableLog:        false,         // 📝 操作日志：记录上传/删除/访问/错误
 	EnableDelete:     false,         // 🗑️ 删除接口：DELETE /img/{path} 删除图片
-	EnableFileList:   false,         // 📋 文件列表：/list 管理页面查看所有图片
 	EnableAutoClean:  false,         // 🧹 自动清理：定期删除超过N小时的文件
 	KeepOriginalName: false,         // 📄 原始文件名：保留上传文件名+随机后缀
 

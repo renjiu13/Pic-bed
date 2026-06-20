@@ -6,7 +6,6 @@
   "timeout": 30,
   "enable_log": false,
   "enable_delete": false,
-  "enable_file_list": false,
   "enable_auto_clean": false,
   "keep_original_name": false,
   "allowed_types": ["jpg", "jpeg", "png", "gif", "webp"],

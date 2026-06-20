@@ -9,7 +9,7 @@
 - 🔧 **多平台支持**：Linux（amd64 / arm64 / armv7）、Windows、macOS
 - 🔒 **基础安全**：扩展名白名单、路径遍历防护、请求体大小硬限制、可选 Bearer 鉴权
 - 🎯 **PicList 兼容**：支持 PicList 自定义图床配置
-- ⚙️ **按需开启**：日志、删除、列表、自动清理等功能默认关闭，手动启用
+- ⚙️ **按需开启**：日志、删除、自动清理等功能默认关闭，手动启用
 
 ## 📡 路由一览
 
@@ -19,8 +19,6 @@
 | `/upload` | POST | 上传图片，表单字段名 `file` | 无；`api_key` 非空时需 Bearer 鉴权 |
 | `/img/{年}/{月}/{文件名}` | GET / HEAD | 预览图片 | 无 |
 | `/img/{年}/{月}/{文件名}` | DELETE | 删除图片 | `enable_delete: true` |
-| `/list` | GET | 图片管理页面（HTML） | `enable_file_list: true` |
-| `/list?format=json` | GET | 图片列表（JSON） | `enable_file_list: true` |
 
 > 图片路径统一为 `/img/年/月/文件名`，例如 `/img/2026/06/abc123.jpg`
 
@@ -37,7 +35,6 @@
 | `timeout` | int | `30` | 读写超时（秒） |
 | `enable_log` | bool | `false` | 是否记录操作日志 |
 | `enable_delete` | bool | `false` | 是否允许 DELETE 删除图片 |
-| `enable_file_list` | bool | `false` | 是否开放 `/list` 管理页 |
 | `enable_auto_clean` | bool | `false` | 是否启用自动清理 |
 | `keep_original_name` | bool | `false` | 保留原始文件名 + 随机后缀 |
 | `allowed_types` | []string | `jpg,jpeg,png,gif,webp` | 允许上传的扩展名白名单 |
@@ -56,7 +53,6 @@
   "timeout": 30,
   "enable_log": false,
   "enable_delete": false,
-  "enable_file_list": false,
   "enable_auto_clean": false,
   "keep_original_name": false,
   "allowed_types": ["jpg", "jpeg", "png", "gif", "webp"],
@@ -127,13 +123,6 @@ GET http://服务器IP:8080/img/2026/06/文件名.jpg
 
 ```bash
 curl -X DELETE http://服务器IP:8080/img/2026/06/文件名.jpg
-```
-
-### 文件列表（需 `enable_file_list: true`）
-
-```
-GET http://服务器IP:8080/list              # HTML 管理页
-GET http://服务器IP:8080/list?format=json   # JSON 格式
 ```
 
 ## 🔐 开启鉴权

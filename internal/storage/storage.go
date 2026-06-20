@@ -39,38 +39,6 @@ func DeleteFile(baseDir, year, month, fileName string) error {
 	return os.Remove(filePath)
 }
 
-// ListFiles 列出所有图片文件
-func ListFiles(baseDir string) ([]FileInfo, error) {
-	var files []FileInfo
-
-	err := filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		rel, _ := filepath.Rel(baseDir, path)
-		files = append(files, FileInfo{
-			Name:    info.Name(),
-			Path:    "/img/" + filepath.ToSlash(rel),
-			Size:    info.Size(),
-			ModTime: info.ModTime(),
-		})
-		return nil
-	})
-
-	return files, err
-}
-
-// FileInfo 文件信息结构
-type FileInfo struct {
-	Name    string    `json:"name"`
-	Path    string    `json:"path"`
-	Size    int64     `json:"size"`
-	ModTime time.Time `json:"mod_time"`
-}
-
 // CleanOldFiles 自动清理超过指定小时数的文件
 func CleanOldFiles(baseDir string, hours int) (int, int64, error) {
 	cutoff := time.Now().Add(-time.Duration(hours) * time.Hour)
