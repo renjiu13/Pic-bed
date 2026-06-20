@@ -13,19 +13,19 @@
 
 ## 📥 下载
 
-最新版本：<!-- version -->v1.0.0<!-- /version -->
+最新版本：<!-- version -->v1.0.1<!-- /version -->
 
 前往 [Releases 页面](https://github.com/renjiu13/Pic-bed/releases) 下载，或直接点击下表：
 
 | 平台 | 文件 | 适用设备 |
 |------|------|----------|
-| Linux amd64 | [pic-bed-linux-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-linux-amd64) | 云服务器、PC |
-| Linux arm64 | [pic-bed-linux-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-linux-arm64) | 树莓派 4/5、ARM 服务器 |
-| Linux armv7 | [pic-bed-linux-armv7](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-linux-armv7) | **玩客云**、树莓派 3 |
-| Windows amd64 | [pic-bed-windows-amd64.exe](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-windows-amd64.exe) | Windows x86-64 |
-| macOS Intel | [pic-bed-darwin-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-darwin-amd64) | Mac Intel |
-| macOS Apple Silicon | [pic-bed-darwin-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-darwin-arm64) | Mac M 系列 |
-| SHA256 校验和 | [SHA256SUMS](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/SHA256SUMS) | 文件完整性校验 |
+| Linux amd64 | [pic-bed-linux-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.1/pic-bed-linux-amd64) | 云服务器、PC |
+| Linux arm64 | [pic-bed-linux-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.1/pic-bed-linux-arm64) | 树莓派 4/5、ARM 服务器 |
+| Linux armv7 | [pic-bed-linux-armv7](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.1/pic-bed-linux-armv7) | **玩客云**、树莓派 3 |
+| Windows amd64 | [pic-bed-windows-amd64.exe](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.1/pic-bed-windows-amd64.exe) | Windows x86-64 |
+| macOS Intel | [pic-bed-darwin-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.1/pic-bed-darwin-amd64) | Mac Intel |
+| macOS Apple Silicon | [pic-bed-darwin-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.1/pic-bed-darwin-arm64) | Mac M 系列 |
+| SHA256 校验和 | [SHA256SUMS](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.1/SHA256SUMS) | 文件完整性校验 |
 
 ### 校验下载文件
 
@@ -184,7 +184,7 @@ curl -X DELETE http://服务器IP:8080/img/2026/06/文件名.jpg
 
 ```bash
 mkdir -p /opt/pic-bed && cd /opt/pic-bed
-wget https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-linux-armv7 -O pic-bed
+wget https://github.com/renjiu13/Pic-bed/releases/download/v1.0.1/pic-bed-linux-armv7 -O pic-bed
 chmod +x pic-bed
 ./pic-bed   # 首次运行自动生成 config.json
 ```
