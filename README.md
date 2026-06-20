@@ -11,6 +11,38 @@
 - 🎯 **PicList 兼容**：支持 PicList 自定义图床配置
 - ⚙️ **按需开启**：日志、删除、自动清理等功能默认关闭，手动启用
 
+## 📥 下载
+
+最新版本：<!-- version -->v1.0.0<!-- /version -->
+
+前往 [Releases 页面](https://github.com/renjiu13/Pic-bed/releases) 下载，或直接点击下表：
+
+| 平台 | 文件 | 适用设备 |
+|------|------|----------|
+| Linux amd64 | [pic-bed-linux-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-linux-amd64) | 云服务器、PC |
+| Linux arm64 | [pic-bed-linux-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-linux-arm64) | 树莓派 4/5、ARM 服务器 |
+| Linux armv7 | [pic-bed-linux-armv7](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-linux-armv7) | **玩客云**、树莓派 3 |
+| Windows amd64 | [pic-bed-windows-amd64.exe](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-windows-amd64.exe) | Windows x86-64 |
+| macOS Intel | [pic-bed-darwin-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-darwin-amd64) | Mac Intel |
+| macOS Apple Silicon | [pic-bed-darwin-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-darwin-arm64) | Mac M 系列 |
+| SHA256 校验和 | [SHA256SUMS](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/SHA256SUMS) | 文件完整性校验 |
+
+### 校验下载文件
+
+**Linux / macOS：**
+
+```bash
+sha256sum -c SHA256SUMS
+```
+
+**Windows (PowerShell)：**
+
+```powershell
+Get-FileHash .\pic-bed-windows-amd64.exe -Algorithm SHA256
+```
+
+将输出结果与 `SHA256SUMS` 文件中的对应行对比。
+
 ## 📡 路由一览
 
 | 路径 | 方法 | 说明 | 前置条件 |
@@ -152,7 +184,7 @@ curl -X DELETE http://服务器IP:8080/img/2026/06/文件名.jpg
 
 ```bash
 mkdir -p /opt/pic-bed && cd /opt/pic-bed
-wget https://github.com/your-repo/releases/download/v2.0/pic-bed-linux-armv7 -O pic-bed
+wget https://github.com/renjiu13/Pic-bed/releases/download/v1.0.0/pic-bed-linux-armv7 -O pic-bed
 chmod +x pic-bed
 ./pic-bed   # 首次运行自动生成 config.json
 ```
@@ -160,7 +192,7 @@ chmod +x pic-bed
 ### Windows
 
 ```powershell
-# 下载 pic-bed-windows-amd64.exe，放到工作目录
+# 从 Releases 下载 pic-bed-windows-amd64.exe 到工作目录
 .\pic-bed-windows-amd64.exe
 # 同目录生成 config.json 后即可使用
 ```
@@ -207,6 +239,23 @@ CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o pic-bed.exe
 go run ./cmd/pic-bed
 ```
 
+## 🚢 自动发布（维护者）
+
+推送 `v*` 标签后，GitHub Actions 会自动：
+
+1. 编译 6 个平台的二进制
+2. UPX 压缩
+3. 生成 `SHA256SUMS` 校验和
+4. 创建 GitHub Release 并上传产物
+5. 自动更新 README 中的版本号和下载链接
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+也可在 GitHub Actions 页面手动触发（`workflow_dispatch`）。
+
 ## 📝 日志格式
 
 开启 `enable_log` 后，日志写入 `log_file` 指定路径：
@@ -231,6 +280,8 @@ pic-bed/
 ├── examples/
 │   ├── config.example.json
 │   └── pic-bed.service
+├── .github/workflows/
+│   └── release.yml       # 自动构建发布
 ├── build.sh              # 多架构编译脚本
 ├── go.mod
 └── README.md
