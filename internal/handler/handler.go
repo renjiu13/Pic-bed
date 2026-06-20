@@ -160,7 +160,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cfg := config.Get()
-	clientIP := getClientIP(r)  // 获取访问者IP
+	clientIP := getClientIP(r)
 	avatarURL := cfg.HomeAvatarURL
 	
 	tmpl := `
@@ -281,7 +281,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.New("home").Parse(tmpl)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	t.Execute(w, map[string]interface{}{
-		"ClientIP":  clientIP,  // 改成访问者IP
+		"ClientIP":  clientIP,
 		"AvatarURL": avatarURL,
 	})
 }
@@ -289,7 +289,6 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 // HandleFileList 文件列表页面
 func HandleFileList(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Get()
-
 	if !cfg.EnableFileList {
 		http.Error(w, "file list disabled", http.StatusForbidden)
 		return
@@ -310,7 +309,7 @@ func HandleFileList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// HTML 页面 - 美化版
+	// HTML 页面 - Apple 风格
 	files, _ := storage.ListFiles(cfg.StorageDir)
 	tmpl := `
 <!DOCTYPE html>
@@ -318,192 +317,249 @@ func HandleFileList(w http.ResponseWriter, r *http.Request) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🖼️ Pic Bed - 图片管理</title>
+    <title>图片库 · Pic Bed</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
             min-height: 100vh;
-            padding: 40px 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 60px 24px 80px;
         }
 
         /* 头部 */
         .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
+            margin-bottom: 48px;
         }
 
         .header h1 {
-            font-size: 2.5rem;
+            font-size: 40px;
             font-weight: 700;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #1d1d1f 0%, #434344 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+            font-size: 17px;
+            color: #86868b;
+            font-weight: 400;
         }
 
-        /* 统计卡片 */
+        /* 统计栏 */
         .stats {
             display: flex;
-            justify-content: center;
-            gap: 30px;
+            gap: 24px;
             margin-bottom: 40px;
             flex-wrap: wrap;
         }
 
         .stat-card {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 20px 40px;
-            color: white;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.2);
+            flex: 1;
+            min-width: 160px;
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
         }
 
         .stat-card .number {
-            font-size: 2rem;
+            font-size: 32px;
             font-weight: 700;
+            letter-spacing: -0.01em;
+            color: #1d1d1f;
+            margin-bottom: 4px;
         }
 
         .stat-card .label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: 5px;
+            font-size: 14px;
+            color: #86868b;
+            font-weight: 500;
         }
 
         /* 图片网格 */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 20px;
         }
 
         .card {
-            background: white;
+            background: #ffffff;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
             cursor: pointer;
         }
 
         .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
         }
 
         .card .img-wrapper {
             width: 100%;
-            height: 180px;
+            aspect-ratio: 1;
             overflow: hidden;
-            background: #f5f5f5;
+            background: #f5f5f7;
+            position: relative;
+        }
+
+        .card .img-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.15) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover .img-wrapper::after {
+            opacity: 1;
         }
 
         .card img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.3s ease;
+            transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
 
         .card:hover img {
-            transform: scale(1.05);
+            transform: scale(1.08);
         }
 
         .card .info {
-            padding: 15px;
+            padding: 16px;
         }
 
         .card .filename {
-            font-size: 0.85rem;
-            color: #333;
-            font-weight: 500;
+            font-size: 14px;
+            color: #1d1d1f;
+            font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
         }
 
         .card .meta {
             display: flex;
             justify-content: space-between;
-            font-size: 0.75rem;
-            color: #999;
+            font-size: 12px;
+            color: #86868b;
+            font-weight: 500;
         }
 
         .card .actions {
             display: flex;
             gap: 8px;
-            margin-top: 12px;
+            margin-top: 14px;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .card:hover .actions {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .btn {
             flex: 1;
-            padding: 8px 12px;
+            padding: 8px 14px;
             border: none;
-            border-radius: 8px;
-            font-size: 0.8rem;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-weight: 500;
+            font-family: inherit;
+            letter-spacing: -0.01em;
         }
 
         .btn-copy {
-            background: #667eea;
+            background: #0071e3;
             color: white;
         }
 
         .btn-copy:hover {
-            background: #5a6fd6;
+            background: #0077ed;
+            transform: scale(1.02);
         }
 
         .btn-copy:active {
-            transform: scale(0.95);
+            transform: scale(0.98);
+            background: #006edb;
         }
 
         /* 空状态 */
         .empty {
             text-align: center;
-            color: white;
-            padding: 80px 20px;
+            padding: 120px 20px;
         }
 
         .empty .icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
+            font-size: 64px;
+            margin-bottom: 24px;
+            opacity: 0.6;
+        }
+
+        .empty h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
         }
 
         .empty p {
-            font-size: 1.2rem;
-            opacity: 0.9;
+            font-size: 15px;
+            color: #86868b;
         }
 
-        /* 复制成功提示 */
+        /* Toast 提示 */
         .toast {
             position: fixed;
-            bottom: 30px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: rgba(0,0,0,0.8);
+            background: rgba(29, 29, 31, 0.92);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
             color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 0.9rem;
+            padding: 14px 28px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
             z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            letter-spacing: -0.01em;
         }
 
         .toast.show {
@@ -514,17 +570,46 @@ func HandleFileList(w http.ResponseWriter, r *http.Request) {
         /* 页脚 */
         .footer {
             text-align: center;
-            color: rgba(255,255,255,0.6);
-            margin-top: 60px;
-            font-size: 0.85rem;
+            color: #86868b;
+            margin-top: 80px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* 响应式 */
+        @media (max-width: 640px) {
+            .container {
+                padding: 40px 16px 60px;
+            }
+            .header h1 {
+                font-size: 32px;
+            }
+            .stats {
+                gap: 12px;
+            }
+            .stat-card {
+                padding: 16px;
+                min-width: 140px;
+            }
+            .stat-card .number {
+                font-size: 24px;
+            }
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .card .actions {
+                opacity: 1;
+                transform: none;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🖼️ Welcome to Pic Bed! :)</h1>
-            <p>I serve photos. Your personal image hosting service.</p>
+            <h1>图片库</h1>
+            <p>你所有的图片，一目了然。</p>
         </div>
 
         <div class="stats">
@@ -553,7 +638,7 @@ func HandleFileList(w http.ResponseWriter, r *http.Request) {
                     </div>
                     <div class="actions">
                         <button class="btn btn-copy" onclick="event.stopPropagation(); copyUrl('{{.Path}}')">
-                            📋 复制链接
+                            复制链接
                         </button>
                     </div>
                 </div>
@@ -562,17 +647,18 @@ func HandleFileList(w http.ResponseWriter, r *http.Request) {
         </div>
         {{else}}
         <div class="empty">
-            <div class="icon">📷</div>
-            <p>还没有图片，快去上传第一张吧！</p>
+            <div class="icon">🖼️</div>
+            <h2>还没有图片</h2>
+            <p>上传你的第一张图片吧</p>
         </div>
         {{end}}
 
         <div class="footer">
-            Pic Bed · 极轻量私有图床 · Powered by Go
+            Pic Bed · 极轻量私有图床
         </div>
     </div>
 
-    <div class="toast" id="toast">✅ 链接已复制到剪贴板</div>
+    <div class="toast" id="toast">✓ 链接已复制</div>
 
     <script>
         function copyUrl(path) {
@@ -580,7 +666,6 @@ func HandleFileList(w http.ResponseWriter, r *http.Request) {
             navigator.clipboard.writeText(url).then(() => {
                 showToast();
             }).catch(() => {
-                // 降级方案
                 const input = document.createElement('input');
                 input.value = url;
                 document.body.appendChild(input);
@@ -601,14 +686,15 @@ func HandleFileList(w http.ResponseWriter, r *http.Request) {
     </script>
 </body>
 </html>`
-	// 预处理文件数据（格式化大小和时间）
+
+	// 预处理文件数据
 	type fileView struct {
 		Name    string
 		Path    string
 		SizeStr string
 		TimeStr string
 	}
-	
+
 	var totalSize int64
 	var fileViews []fileView
 	for _, f := range files {
