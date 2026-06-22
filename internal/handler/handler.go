@@ -246,6 +246,10 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
             font-size: 0.85rem;
             color: #999;
         }
+        .footer a:hover {
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
     </style>
 </head>
 <body>
@@ -266,7 +270,11 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
         <p class="ip">{{.ClientIP}}</p>
     </div>
     <div class="footer">
-        Pic Bed · 极轻量私有图床
+        <a href="https://github.com/renjiu13/Pic-bed" 
+           target="_blank" 
+           style="color: inherit; text-decoration: none;">
+            Pic Bed
+        </a> · 极轻量私有图床
     </div>
 </body>
 </html>`
