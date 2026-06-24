@@ -257,9 +257,31 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
             opacity: 0.6;
             transition: opacity 0.2s;
         }
+        .upload-btn-mini {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            text-decoration: none;
+            font-size: 20px;
+            line-height: 1;
+            transition: color 0.2s ease;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        .upload-btn-mini:hover {
+            color: #000;
+        }
     </style>
 </head>
 <body>
+    <a href="/upload" class="upload-btn-mini" title="上传图片">⬆</a>
     <div class="container">
         <h1>Welcome to awang! :)</h1>
         
@@ -274,11 +296,6 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
         {{end}}
         <p>I serve photos. You'll need a URL.</p>
         <p></p>
-        <p style="margin-top: 20px;">
-            <a href="/upload" style="display: inline-block; padding: 10px 24px; background: linear-gradient(135deg, #ff6b9d 0%, #ffa3c4 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 600;">
-                📤 上传图片
-            </a>
-        </p>
         <p class="ip">{{.ClientIP}}</p>
     </div>
     <div class="footer">
