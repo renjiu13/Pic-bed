@@ -115,20 +115,20 @@ curl -F "file=@test.jpg" -H "Authorization: Bearer 你的密钥" http://localhos
 
 ## 📥 手动下载
 
-最新版本：<!-- version -->v1.0.3<!-- /version -->
+最新版本：<!-- version -->v1.0.4<!-- /version -->
 
 前往 [Releases](https://github.com/renjiu13/Pic-bed/releases) 下载对应平台二进制。
 
 | 平台 | 文件 |
 |------|------|
-| Linux amd64 | [pic-bed-linux-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.3/pic-bed-linux-amd64) |
-| Linux arm64 | [pic-bed-linux-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.3/pic-bed-linux-arm64) |
-| Linux armv7 | [pic-bed-linux-armv7](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.3/pic-bed-linux-armv7) |
-| Windows | [pic-bed-windows-amd64.exe](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.3/pic-bed-windows-amd64.exe) |
-| macOS Intel | [pic-bed-darwin-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.3/pic-bed-darwin-amd64) |
-| macOS Apple Silicon | [pic-bed-darwin-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.3/pic-bed-darwin-arm64) |
+| Linux amd64 | [pic-bed-linux-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.4/pic-bed-linux-amd64) |
+| Linux arm64 | [pic-bed-linux-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.4/pic-bed-linux-arm64) |
+| Linux armv7 | [pic-bed-linux-armv7](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.4/pic-bed-linux-armv7) |
+| Windows | [pic-bed-windows-amd64.exe](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.4/pic-bed-windows-amd64.exe) |
+| macOS Intel | [pic-bed-darwin-amd64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.4/pic-bed-darwin-amd64) |
+| macOS Apple Silicon | [pic-bed-darwin-arm64](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.4/pic-bed-darwin-arm64) |
 
-校验和：[SHA256SUMS](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.3/SHA256SUMS)
+校验和：[SHA256SUMS](https://github.com/renjiu13/Pic-bed/releases/download/v1.0.4/SHA256SUMS)
 
 ---
 
