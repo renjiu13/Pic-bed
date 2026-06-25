@@ -16,26 +16,28 @@ func GetYearMonth() (string, string) {
 }
 
 // GenerateFileName 生成文件名
-// keepOriginalName=true: 原始文件名_随机4位.后缀（保证不重名）
-// keepOriginalName=false: 纯随机16位文件名.后缀
+// 命名格式：年月日时分秒_随机4位.后缀，例如 20260625143022_a1b2.webp
+// keepOriginalName=true 时：年月日时分秒_原名_随机4位.后缀
 func GenerateFileName(originalName, ext string, keepOriginalName bool) string {
-	// 生成8字节随机数 = 16位十六进制
-	randomBytes := make([]byte, 8)
+	now := time.Now()
+	timeStr := fmt.Sprintf("%04d%02d%02d%02d%02d%02d",
+		now.Year(), now.Month(), now.Day(),
+		now.Hour(), now.Minute(), now.Second())
+
+	randomBytes := make([]byte, 2)
 	rand.Read(randomBytes)
 	randomStr := hex.EncodeToString(randomBytes)
 
 	if keepOriginalName && originalName != "" {
-		// 提取纯文件名（不含路径和扩展名）
 		base := filepath.Base(originalName)
 		base = strings.TrimSuffix(base, filepath.Ext(base))
-		// 清理不安全字符
 		base = sanitizeFileName(base)
 		if base != "" {
-			return fmt.Sprintf("%s_%s.%s", base, randomStr[:4], ext)
+			return fmt.Sprintf("%s_%s_%s.%s", timeStr, base, randomStr, ext)
 		}
 	}
-	// 默认：纯随机文件名
-	return fmt.Sprintf("%s.%s", randomStr, ext)
+
+	return fmt.Sprintf("%s_%s.%s", timeStr, randomStr, ext)
 }
 
 // sanitizeFileName 清理文件名中的特殊字符和危险字符

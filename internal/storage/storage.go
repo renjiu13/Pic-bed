@@ -86,6 +86,7 @@ func StartAutoClean(baseDir string, hours int) {
 }
 
 // ConvertToWebP 将图片转换为 WebP 格式并保存；GIF 和已是 WebP 的文件跳过
+// 转换成功后自动删除原文件
 func ConvertToWebP(srcPath string, quality float32) (string, error) {
 	ext := strings.ToLower(filepath.Ext(srcPath))
 
@@ -93,11 +94,14 @@ func ConvertToWebP(srcPath string, quality float32) (string, error) {
 		return srcPath, nil
 	}
 
+	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("源文件不存在: %s", srcPath)
+	}
+
 	f, err := os.Open(srcPath)
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
 
 	var img image.Image
 	switch ext {
@@ -106,10 +110,12 @@ func ConvertToWebP(srcPath string, quality float32) (string, error) {
 	case ".png":
 		img, err = png.Decode(f)
 	default:
+		f.Close()
 		return srcPath, nil
 	}
+	f.Close()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("图片解码失败: %w", err)
 	}
 
 	webpPath := strings.TrimSuffix(srcPath, ext) + ".webp"
@@ -118,17 +124,30 @@ func ConvertToWebP(srcPath string, quality float32) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer out.Close()
 
 	err = gowebp.Encode(out, img, &gowebp.Options{
 		Lossy:   true,
 		Quality: quality,
 	})
 	if err != nil {
+		out.Close()
 		os.Remove(webpPath)
 		return srcPath, nil
 	}
 
-	os.Remove(srcPath)
+	if err := out.Close(); err != nil {
+		os.Remove(webpPath)
+		return srcPath, nil
+	}
+
+	if info, err := os.Stat(webpPath); err != nil || info.Size() == 0 {
+		os.Remove(webpPath)
+		return srcPath, nil
+	}
+
+	if err := os.Remove(srcPath); err != nil {
+		fmt.Printf("[ConvertToWebP] 警告：原文件删除失败: %v\n", err)
+	}
+
 	return webpPath, nil
 }

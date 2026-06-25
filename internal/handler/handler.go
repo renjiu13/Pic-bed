@@ -581,7 +581,10 @@ func renderUploadPage(w http.ResponseWriter, cfg config.Config) {
         
         // 上传
         uploadBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
+            if (!selectedFile) {
+                fileInput.click();
+                return;
+            }
             
             uploadBtn.disabled = true;
             uploadBtn.textContent = '上传中...';
@@ -612,16 +615,18 @@ func renderUploadPage(w http.ResponseWriter, cfg config.Config) {
                     resultPreview.src = data.url;
                     resultURL.value = window.location.origin + data.url;
                     resultArea.classList.add('show');
-                    uploadBtn.textContent = '上传成功，继续上传';
+                    selectedFile = null;
+                    fileInput.value = '';
+                    uploadBtn.textContent = '选择图片后上传';
+                    uploadBtn.disabled = true;
                 } else {
                     throw new Error(data.message || '上传失败');
                 }
             } catch (err) {
                 errorMsg.textContent = '❌ ' + err.message;
                 uploadBtn.textContent = '重新上传';
+                uploadBtn.disabled = false;
             }
-            
-            uploadBtn.disabled = false;
         });
         
         function copyURL() {
