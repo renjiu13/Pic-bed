@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net"
 	"net/http"
@@ -91,6 +92,15 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 		logger.LogError(ip, fileName, "save failed: "+err.Error())
 		respondJSON(w, false, "", "save failed", http.StatusInternalServerError)
 		return
+	}
+
+	if cfg.EnableWebPConvert {
+		fullPath := filepath.Join(cfg.StorageDir, year, month, fileName)
+		webpPath, convErr := storage.ConvertToWebP(fullPath, cfg.WebPQuality)
+		if convErr == nil && webpPath != fullPath {
+			fileName = filepath.Base(webpPath)
+			relativeURL = fmt.Sprintf("/img/%s/%s/%s", year, month, fileName)
+		}
 	}
 
 	logger.LogUpload(ip, fileName, relativeURL, fileHeader.Size)

@@ -19,6 +19,8 @@ type Config struct {
 	EnableDelete     bool     `json:"enable_delete"`      // 🗑️ 删除接口：DELETE /img/{path} 删除图片
 	EnableAutoClean  bool     `json:"enable_auto_clean"`  // 🧹 自动清理：定期删除超过N小时的文件
 	KeepOriginalName bool     `json:"keep_original_name"` // 📄 原始文件名：保留上传文件名+随机后缀
+	EnableWebPConvert bool    `json:"enable_webp_convert"` // 是否启用 WebP 转换
+	WebPQuality       float32 `json:"webp_quality"`        // WebP 质量 1-100
 
 	// 功能详细配置
 	AllowedTypes    []string `json:"allowed_types"`     // 允许的文件类型白名单
@@ -47,6 +49,8 @@ var defaultConfig = Config{
 	EnableDelete:     false,         // 🗑️ 删除接口：DELETE /img/{path} 删除图片
 	EnableAutoClean:  false,         // 🧹 自动清理：定期删除超过N小时的文件
 	KeepOriginalName: false,         // 📄 原始文件名：保留上传文件名+随机后缀
+	EnableWebPConvert: false,        // WebP 转换：默认关闭
+	WebPQuality:       80,           // WebP 质量：默认 80
 
 	// 功能详细配置
 	AllowedTypes:     []string{"jpg", "jpeg", "png", "gif", "webp"},  // 允许的文件类型白名单

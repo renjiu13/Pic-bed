@@ -2,10 +2,16 @@ package storage
 
 import (
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/KarpelesLab/gowebp"
 )
 
 // SaveFile 流式保存文件
@@ -77,4 +83,52 @@ func StartAutoClean(baseDir string, hours int) {
 			}
 		}
 	}()
+}
+
+// ConvertToWebP 将图片转换为 WebP 格式并保存；GIF 和已是 WebP 的文件跳过
+func ConvertToWebP(srcPath string, quality float32) (string, error) {
+	ext := strings.ToLower(filepath.Ext(srcPath))
+
+	if ext == ".gif" || ext == ".webp" {
+		return srcPath, nil
+	}
+
+	f, err := os.Open(srcPath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	var img image.Image
+	switch ext {
+	case ".jpg", ".jpeg":
+		img, err = jpeg.Decode(f)
+	case ".png":
+		img, err = png.Decode(f)
+	default:
+		return srcPath, nil
+	}
+	if err != nil {
+		return "", err
+	}
+
+	webpPath := strings.TrimSuffix(srcPath, ext) + ".webp"
+
+	out, err := os.Create(webpPath)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	err = gowebp.Encode(out, img, &gowebp.Options{
+		Lossy:   true,
+		Quality: quality,
+	})
+	if err != nil {
+		os.Remove(webpPath)
+		return srcPath, nil
+	}
+
+	os.Remove(srcPath)
+	return webpPath, nil
 }
