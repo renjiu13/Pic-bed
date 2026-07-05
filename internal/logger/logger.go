@@ -19,32 +19,30 @@ var (
 )
 
 // Init 初始化日志
-func Init(logPath string, enable bool) error {
+func Init(path string, enable bool) error {
 	if !enable {
 		return nil
 	}
-
 	var err error
 	once.Do(func() {
-		logDir := filepath.Dir(logPath)
+		logDir := filepath.Dir(path)
 		if logDir != "." {
-			os.MkdirAll(logDir, 0755)
+			if mkdirErr := os.MkdirAll(logDir, 0755); mkdirErr != nil {
+				err = fmt.Errorf("create log dir failed: %w", mkdirErr)
+				return
+			}
 		}
 		// 保存路径模板（不含日期）
 		// 例如: /data/logs/picbed.log -> /data/logs/picbed-YYYY-MM-DD.log
+		logPath = path  
 	})
-
-	// 成功初始化后再设置路径
+	// 初始化第一个日志文件
 	if err == nil {
-		mu.Lock()
-		logPath = logPath
-		mu.Unlock()
-		// 初始化第一个日志文件
 		err = rotateLogFile()
 	}
-
 	return err
 }
+
 
 // rotateLogFile 切换日志文件（按日期）
 func rotateLogFile() error {
