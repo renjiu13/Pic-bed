@@ -16,6 +16,9 @@
             justify-content: center;
             padding: 40px 20px;
             background: #fff;
+            /* 规范方式：缩小整体页面到80% */
+            transform: scale(0.8);
+            transform-origin: top center;
         }
         .container {
             text-align: center;
@@ -62,6 +65,8 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            /* 修改圆角：在这里调整 border-radius 的值 */
+            border-radius: 15px;
         }
         .avatar .face {
             font-size: 150px;
