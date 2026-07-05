@@ -20,6 +20,7 @@ import (
 type StorageManager struct {
 	baseDir     string
 	mu          sync.RWMutex
+	pathLocks   map[string]*sync.Mutex
 	stopCleanCh chan struct{}
 	cleanerDone chan struct{}
 }
@@ -32,9 +33,27 @@ func NewStorageManager(baseDir string) (*StorageManager, error) {
 
 	return &StorageManager{
 		baseDir:     baseDir,
+		pathLocks:   make(map[string]*sync.Mutex),
 		stopCleanCh: make(chan struct{}),
 		cleanerDone: make(chan struct{}),
 	}, nil
+}
+
+func (sm *StorageManager) lockForPath(path string) *sync.Mutex {
+	sm.mu.RLock()
+	lock, ok := sm.pathLocks[path]
+	sm.mu.RUnlock()
+	if ok {
+		return lock
+	}
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if lock, ok = sm.pathLocks[path]; !ok {
+		lock = &sync.Mutex{}
+		sm.pathLocks[path] = lock
+	}
+	return lock
 }
 
 // ValidateFileName 防止路径遍历
@@ -76,6 +95,10 @@ func (sm *StorageManager) SaveFile(reader io.Reader, year, month, fileName strin
 		return "", err
 	}
 
+	pathLock := sm.lockForPath(fullPath)
+	pathLock.Lock()
+	defer pathLock.Unlock()
+
 	outFile, err := os.Create(fullPath)
 	if err != nil {
 		return "", fmt.Errorf("create file failed: %w", err)
@@ -100,6 +123,10 @@ func (sm *StorageManager) DeleteFile(year, month, fileName string) error {
 	if err := sm.ValidatePath(filePath); err != nil {
 		return err
 	}
+
+	pathLock := sm.lockForPath(filePath)
+	pathLock.Lock()
+	defer pathLock.Unlock()
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return fmt.Errorf("file not found")
@@ -168,6 +195,16 @@ func (sm *StorageManager) StopAutoClean() error {
 	case <-time.After(5 * time.Second):
 		return fmt.Errorf("cleaner shutdown timeout")
 	}
+}
+
+// ConvertToWebPAsync 在后台异步转换图片为 WebP，避免阻塞上传流程。
+func (sm *StorageManager) ConvertToWebPAsync(srcPath string, quality float32) error {
+	go func() {
+		if _, err := sm.ConvertToWebP(srcPath, quality); err != nil {
+			log.Printf("[storage] webp conversion failed for %s: %v", srcPath, err)
+		}
+	}()
+	return nil
 }
 
 // ConvertToWebP 转换为 WebP 格式

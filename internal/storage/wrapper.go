@@ -58,6 +58,14 @@ func ConvertToWebP(inputPath string, quality float32) (string, error) {
 	return defaultManager.ConvertToWebP(inputPath, quality)
 }
 
+// ConvertToWebPAsync 通过默认管理器在后台异步转换图片为 WebP。
+func ConvertToWebPAsync(inputPath string, quality float32) error {
+	if defaultManager == nil {
+		return fmt.Errorf("storage not initialized")
+	}
+	return defaultManager.ConvertToWebPAsync(inputPath, quality)
+}
+
 // DeleteFile 通过默认管理器删除文件。
 func DeleteFile(baseDir, year, month, fileName string) error {
 	sm, err := ensureManager(baseDir)

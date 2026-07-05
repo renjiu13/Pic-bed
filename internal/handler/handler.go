@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -114,10 +115,8 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 
 	if cfg.EnableWebPConvert {
 		fullPath := filepath.Join(cfg.StorageDir, year, month, fileName)
-		webpPath, convErr := storage.ConvertToWebP(fullPath, cfg.WebPQuality)
-		if convErr == nil && webpPath != fullPath {
-			fileName = filepath.Base(webpPath)
-			relativeURL = fmt.Sprintf("/img/%s/%s/%s", year, month, fileName)
+		if err := storage.ConvertToWebPAsync(fullPath, cfg.WebPQuality); err != nil {
+			logger.LogError(ip, fileName, "webp convert queue failed: "+err.Error())
 		}
 	}
 
@@ -156,6 +155,15 @@ func HandleImage(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet, http.MethodHead:
 		// GET/HEAD: 预览图片
+		if info, err := os.Stat(fullPath); err == nil {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			w.Header().Set("ETag", fmt.Sprintf(`"%x"`, info.ModTime().Unix()))
+			w.Header().Set("Last-Modified", info.ModTime().UTC().Format(http.TimeFormat))
+			if ifNoneMatch := r.Header.Get("If-None-Match"); ifNoneMatch != "" && ifNoneMatch == fmt.Sprintf(`"%x"`, info.ModTime().Unix()) {
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+		}
 		logger.LogAccess(ip, fileName)
 		http.ServeFile(w, r, fullPath)
 

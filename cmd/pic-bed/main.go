@@ -33,6 +33,18 @@ func main() {
 		panic("Failed to init storage: " + err.Error())
 	}
 
+	go func() {
+		hup := make(chan os.Signal, 1)
+		signal.Notify(hup, syscall.SIGHUP)
+		for range hup {
+			if err := config.Reload(); err != nil {
+				fmt.Printf("Config reload failed: %v\n", err)
+				continue
+			}
+			fmt.Println("Config reloaded")
+		}
+	}()
+
 	// 启动自动清理
 	if cfg.EnableAutoClean && cfg.AutoCleanHours > 0 {
 		storage.StartAutoClean(cfg.StorageDir, cfg.AutoCleanHours)
