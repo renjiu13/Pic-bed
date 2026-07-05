@@ -113,20 +113,11 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-if cfg.EnableWebPConvert {
-    fullPath := filepath.Join(cfg.StorageDir, year, month, fileName)
-    // 传入是否保留原图的配置
-    if err := storage.ConvertToWebPAsync(fullPath, cfg.WebPQuality, cfg.KeepOriginalAfterWebP); err != nil {
-        logger.LogError(ip, fileName, "webp convert queue failed: "+err.Error())
-    }
-    // 如果不保留原图，直接返回 WebP URL（假设转换会成功）
-    // 如果保留原图，则返回原始 URL（访问时会自动重定向到 WebP）
-    if !cfg.KeepOriginalAfterWebP {
-        if ext := strings.ToLower(filepath.Ext(fileName)); ext != "" && ext != ".webp" {
-            relativeURL = fmt.Sprintf("/img/%s/%s/%s.webp", year, month, strings.TrimSuffix(filepath.Base(fileName), ext))
-        }
-    }
-}
+	if cfg.EnableWebPConvert {
+		fullPath := filepath.Join(cfg.StorageDir, year, month, fileName)
+		if err := storage.ConvertToWebPAsync(fullPath, cfg.WebPQuality, cfg.KeepOriginalAfterWebP); err != nil {
+			logger.LogError(ip, fileName, "webp convert queue failed: "+err.Error())
+		}
 		if ext := strings.ToLower(filepath.Ext(fileName)); ext != "" && ext != ".webp" {
 			relativeURL = fmt.Sprintf("/img/%s/%s/%s.webp", year, month, strings.TrimSuffix(filepath.Base(fileName), ext))
 		}

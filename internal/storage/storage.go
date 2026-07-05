@@ -18,11 +18,11 @@ import (
 
 // StorageManager 存储管理器
 type StorageManager struct {
-	baseDir      string
-	mu           sync.RWMutex
-	pathLocks    map[string]*sync.Mutex
-	stopCleanCh  chan struct{}
-	cleanerDone  chan struct{}
+	baseDir     string
+	mu          sync.RWMutex
+	pathLocks   map[string]*sync.Mutex
+	stopCleanCh chan struct{}
+	cleanerDone chan struct{}
 }
 
 // NewStorageManager 创建新的存储管理器
@@ -197,10 +197,16 @@ func (sm *StorageManager) StopAutoClean() error {
 	}
 }
 
-// ConvertToWebPAsync 异步转换为 WebP 格式，不阻塞请求
-func (sm *StorageManager) ConvertToWebPAsync(srcPath string, quality float32, keepOriginal bool) error {
+// ConvertToWebPAsync 异步转换为 WebP 格式，不阻塞请求。
+// keepOriginal 为可选参数，兼容旧调用方式。
+func (sm *StorageManager) ConvertToWebPAsync(srcPath string, quality float32, keepOriginal ...bool) error {
+	preserveOriginal := false
+	if len(keepOriginal) > 0 {
+		preserveOriginal = keepOriginal[0]
+	}
+
 	go func() {
-		if _, err := sm.ConvertToWebP(srcPath, quality, keepOriginal); err != nil {
+		if _, err := sm.ConvertToWebP(srcPath, quality, preserveOriginal); err != nil {
 			log.Printf("[storage] webp conversion failed for %s: %v", srcPath, err)
 		}
 	}()

@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	defaultManager      *StorageManager
-	defaultManagerMu    sync.Mutex
-	defaultManagerOnce  sync.Once
-	defaultManagerErr   error
+	defaultManager     *StorageManager
+	defaultManagerMu   sync.Mutex
+	defaultManagerOnce sync.Once
+	defaultManagerErr  error
 )
 
 // Init 初始化默认存储管理器
@@ -59,11 +59,11 @@ func ConvertToWebP(inputPath string, quality float32, keepOriginal bool) (string
 }
 
 // ConvertToWebPAsync 异步转换为 WebP 格式（包级便捷函数）
-func ConvertToWebPAsync(inputPath string, quality float32, keepOriginal bool) error {
+func ConvertToWebPAsync(inputPath string, quality float32, keepOriginal ...bool) error {
 	if defaultManager == nil {
 		return fmt.Errorf("storage not initialized")
 	}
-	return defaultManager.ConvertToWebPAsync(inputPath, quality, keepOriginal)
+	return defaultManager.ConvertToWebPAsync(inputPath, quality, keepOriginal...)
 }
 
 // DeleteFile 删除文件（包级便捷函数）
