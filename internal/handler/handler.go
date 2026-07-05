@@ -301,7 +301,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
         </div>
         {{else}}
         <div class="avatar default">
-            <span class="face">😎</span>
+            <span class="face">🥰</span>
         </div>
         {{end}}
         <p>I serve photos. You'll need a URL.</p>
