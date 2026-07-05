@@ -39,8 +39,8 @@ func NewStorageManager(baseDir string) (*StorageManager, error) {
 
 // ValidateFileName 防止路径遍历
 func (sm *StorageManager) ValidateFileName(fileName string) error {
-	if strings.Contains(fileName, "..") || filepath.IsAbs(fileName) || 
-	   strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
+	if strings.Contains(fileName, "..") || filepath.IsAbs(fileName) ||
+		strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
 		return fmt.Errorf("invalid filename")
 	}
 	return nil
@@ -61,9 +61,6 @@ func (sm *StorageManager) SaveFile(reader io.Reader, year, month, fileName strin
 	if err := sm.ValidateFileName(fileName); err != nil {
 		return "", err
 	}
-
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
 
 	targetDir := filepath.Join(sm.baseDir, year, month)
 	if err := sm.ValidatePath(targetDir); err != nil {
@@ -98,9 +95,6 @@ func (sm *StorageManager) DeleteFile(year, month, fileName string) error {
 	if err := sm.ValidateFileName(fileName); err != nil {
 		return err
 	}
-
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
 
 	filePath := filepath.Join(sm.baseDir, year, month, fileName)
 	if err := sm.ValidatePath(filePath); err != nil {
@@ -236,8 +230,6 @@ func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32) (string
 	os.Remove(srcPath)
 	return webpPath, nil
 }
-
-
 
 // Close 关闭管理器
 func (sm *StorageManager) Close() error {

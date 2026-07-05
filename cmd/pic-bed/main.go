@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/pic-bed/pic-bed/internal/config"
@@ -62,7 +66,24 @@ func main() {
 		ReadTimeout:  time.Duration(cfg.Timeout) * time.Second,
 		WriteTimeout: time.Duration(cfg.Timeout) * time.Second,
 	}
-	if err := server.ListenAndServe(); err != nil {
-		panic("Server failed: " + err.Error())
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			panic("Server failed: " + err.Error())
+		}
+	}()
+
+	<-quit
+	fmt.Println("\nShutdown signal received, exiting gracefully...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		fmt.Printf("Server shutdown error: %v\n", err)
 	}
+	_ = logger.Close()
+	_ = storage.Close()
 }

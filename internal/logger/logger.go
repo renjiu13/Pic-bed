@@ -23,6 +23,7 @@ func Init(path string, enable bool) error {
 	if !enable {
 		return nil
 	}
+
 	var err error
 	once.Do(func() {
 		logDir := filepath.Dir(path)
@@ -32,36 +33,36 @@ func Init(path string, enable bool) error {
 				return
 			}
 		}
-		// 保存路径模板（不含日期）
-		// 例如: /data/logs/picbed.log -> /data/logs/picbed-YYYY-MM-DD.log
-		logPath = path  
+		logPath = path
 	})
-	// 初始化第一个日志文件
-	if err == nil {
-		err = rotateLogFile()
+	if err != nil {
+		return err
 	}
-	return err
+	return rotateLogFile()
 }
-
 
 // rotateLogFile 切换日志文件（按日期）
 func rotateLogFile() error {
 	mu.Lock()
 	defer mu.Unlock()
+	return rotateLogFileLocked()
+}
 
+func rotateLogFileLocked() error {
 	today := time.Now().Format("2006-01-02")
 
-	// 如果日期未改变且文件已打开，无需轮转
 	if today == currentDate && logFile != nil {
 		return nil
 	}
 
-	// 关闭旧文件
 	if logFile != nil {
-		logFile.Close()
+		_ = logFile.Close()
 	}
 
-	// 生成新日志文件名（含日期）
+	if logPath == "" {
+		return nil
+	}
+
 	logDir := filepath.Dir(logPath)
 	logName := filepath.Base(logPath)
 	ext := filepath.Ext(logName)
@@ -69,7 +70,6 @@ func rotateLogFile() error {
 
 	newLogPath := filepath.Join(logDir, fmt.Sprintf("%s-%s%s", baseName, today, ext))
 
-	// 打开新文件
 	var err error
 	logFile, err = os.OpenFile(newLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -78,19 +78,21 @@ func rotateLogFile() error {
 
 	logger = log.New(logFile, "", log.LstdFlags)
 	currentDate = today
-
 	return nil
 }
 
 // ensureLogger 确保日志文件已初始化（检查是否需要轮转）
 func ensureLogger() {
-	if logger == nil {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if logger == nil || logPath == "" {
 		return
 	}
 
 	today := time.Now().Format("2006-01-02")
 	if today != currentDate {
-		rotateLogFile()
+		_ = rotateLogFileLocked()
 	}
 }
 
@@ -136,8 +138,12 @@ func Close() error {
 	mu.Lock()
 	defer mu.Unlock()
 
+	var err error
 	if logFile != nil {
-		return logFile.Close()
+		err = logFile.Close()
+		logFile = nil
 	}
-	return nil
+	logger = nil
+	currentDate = ""
+	return err
 }

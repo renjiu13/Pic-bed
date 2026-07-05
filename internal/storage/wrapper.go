@@ -4,9 +4,15 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 )
 
-var defaultManager *StorageManager
+var (
+	defaultManager     *StorageManager
+	defaultManagerMu   sync.Mutex
+	defaultManagerOnce sync.Once
+	defaultManagerErr  error
+)
 
 // Init 初始化默认存储管理器。
 func Init(baseDir string) error {
@@ -14,13 +20,15 @@ func Init(baseDir string) error {
 		return fmt.Errorf("storage base dir is empty")
 	}
 
-	sm, err := NewStorageManager(baseDir)
-	if err != nil {
-		return err
-	}
-
-	defaultManager = sm
-	return nil
+	defaultManagerOnce.Do(func() {
+		sm, err := NewStorageManager(baseDir)
+		if err != nil {
+			defaultManagerErr = err
+			return
+		}
+		defaultManager = sm
+	})
+	return defaultManagerErr
 }
 
 func ensureManager(baseDir string) (*StorageManager, error) {
