@@ -231,26 +231,35 @@ func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32, keepOri
 		return "", fmt.Errorf("file not found: %s", srcPath)
 	}
 
-	f, err := os.Open(srcPath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
+	// ✅ 第一步：读取并解码图片，读完就关闭文件（避免 Windows 上文件占用导致删除失败）
 	var img image.Image
-	switch ext {
-	case ".jpg", ".jpeg":
-		img, err = jpeg.Decode(f)
-	case ".png":
-		img, err = png.Decode(f)
-	default:
+	var decodeErr error
+	func() {
+		f, err := os.Open(srcPath)
+		if err != nil {
+			decodeErr = err
+			return
+		}
+		defer f.Close() // 匿名函数结束就关闭文件
+
+		switch ext {
+		case ".jpg", ".jpeg":
+			img, decodeErr = jpeg.Decode(f)
+		case ".png":
+			img, decodeErr = png.Decode(f)
+		default:
+			return
+		}
+	}()
+
+	if decodeErr != nil {
+		return "", fmt.Errorf("decode failed: %w", decodeErr)
+	}
+	if img == nil {
 		return srcPath, nil
 	}
 
-	if err != nil {
-		return "", fmt.Errorf("decode failed: %w", err)
-	}
-
+	// ✅ 第二步：生成 WebP 文件
 	webpPath := strings.TrimSuffix(srcPath, ext) + ".webp"
 
 	out, err := os.Create(webpPath)
@@ -273,16 +282,16 @@ func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32, keepOri
 		return "", fmt.Errorf("webp file invalid")
 	}
 
-	// ✨ 根据配置决定是否删除原图
+	// ✅ 第三步：删除原图（这时候原图已经关闭，可以安全删除）
 	if !keepOriginal {
-		// 使用文件锁确保并发安全
 		pathLock := sm.lockForPath(srcPath)
 		pathLock.Lock()
 		defer pathLock.Unlock()
 
-		// 二次确认文件存在后再删除
 		if _, err := os.Stat(srcPath); err == nil {
-			os.Remove(srcPath)
+			if removeErr := os.Remove(srcPath); removeErr != nil {
+				log.Printf("[storage] failed to remove original file %s: %v", srcPath, removeErr)
+			}
 		}
 	}
 
