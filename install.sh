@@ -95,7 +95,8 @@ User=root
 WorkingDirectory=/opt/pic-bed
 ExecStart=/opt/pic-bed/pic-bed
 Restart=always
-RestartSec=5
+RestartSec=2
+MemoryLimit=100M
 
 [Install]
 WantedBy=multi-user.target
