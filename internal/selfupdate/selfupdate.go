@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 	"time"
@@ -197,7 +198,43 @@ func DoUpdate(downloadURL string) error {
 	os.Remove(backupPath)
 
 	fmt.Println("✓ 更新完成！")
-	fmt.Printf("请重新启动程序以使用新版本\n")
+
+	// 尝试自动重启 systemd 服务
+	if restartSystemdService() {
+		fmt.Println("✓ systemd 服务已自动重启")
+	} else {
+		fmt.Println("请重新启动程序以使用新版本")
+	}
 
 	return nil
+}
+
+// IsSystemdService 检测是否运行在 systemd 服务下
+func IsSystemdService() bool {
+	// 检查 systemctl 命令是否存在
+	if _, err := exec.LookPath("systemctl"); err != nil {
+		return false
+	}
+
+	// 检查 pic-bed 服务是否存在且处于活动状态
+	cmd := exec.Command("systemctl", "is-active", "--quiet", "pic-bed")
+	return cmd.Run() == nil
+}
+
+// restartSystemdService 尝试重启 systemd 服务
+func restartSystemdService() bool {
+	if !IsSystemdService() {
+		return false
+	}
+
+	fmt.Println("🔄 检测到 systemd 服务，正在重启...")
+
+	cmd := exec.Command("systemctl", "restart", "pic-bed")
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("警告: 自动重启服务失败: %v\n", err)
+		fmt.Println("请手动执行: systemctl restart pic-bed")
+		return false
+	}
+
+	return true
 }
