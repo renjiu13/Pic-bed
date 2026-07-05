@@ -24,6 +24,11 @@ func main() {
 		}
 	}
 
+	// 初始化存储管理器
+	if err := storage.Init(cfg.StorageDir); err != nil {
+		panic("Failed to init storage: " + err.Error())
+	}
+
 	// 启动自动清理
 	if cfg.EnableAutoClean && cfg.AutoCleanHours > 0 {
 		storage.StartAutoClean(cfg.StorageDir, cfg.AutoCleanHours)
@@ -31,9 +36,9 @@ func main() {
 	}
 
 	// 注册路由
-	http.HandleFunc("/", handler.HandleHome)                      // 首页
+	http.HandleFunc("/", handler.HandleHome) // 首页
 	http.HandleFunc("/upload", handler.AuthMiddleware(handler.HandleUpload))
-	http.HandleFunc("/img/", handler.HandleImage)                 // 统一处理 GET/DELETE
+	http.HandleFunc("/img/", handler.HandleImage) // 统一处理 GET/DELETE
 
 	// 启动信息
 	fmt.Println("=== 极轻量图床启动成功 ===")

@@ -171,7 +171,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Get()
 	clientIP := getClientIP(r)
 	avatarURL := cfg.HomeAvatarURL
-	
+
 	tmpl := `
 <!DOCTYPE html>
 <html lang="en">

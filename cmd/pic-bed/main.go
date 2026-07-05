@@ -24,6 +24,11 @@ func main() {
 		}
 	}
 
+	// 初始化存储管理器
+	if err := storage.Init(cfg.StorageDir); err != nil {
+		panic("Failed to init storage: " + err.Error())
+	}
+
 	// 启动自动清理
 	if cfg.EnableAutoClean && cfg.AutoCleanHours > 0 {
 		storage.StartAutoClean(cfg.StorageDir, cfg.AutoCleanHours)
