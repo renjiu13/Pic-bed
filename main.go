@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/pic-bed/pic-bed/internal/config"
@@ -19,6 +21,12 @@ func main() {
 
 	// 初始化日志
 	if cfg.EnableLog {
+		// Yes 创建日志文件夹
+		logDir := filepath.Dir(cfg.LogFile)
+		if err := os.MkdirAll(logDir, 0755); err != nil {
+			fmt.Printf("Warning: failed to create log directory: %v\n", err)
+		}
+
 		if err := logger.Init(cfg.LogFile, true); err != nil {
 			fmt.Printf("Warning: log init failed: %v\n", err)
 		}
@@ -36,9 +44,9 @@ func main() {
 	}
 
 	// 注册路由
-	http.HandleFunc("/", handler.HandleHome) // 首页
+	http.HandleFunc("/", handler.HandleHome)
 	http.HandleFunc("/upload", handler.AuthMiddleware(handler.HandleUpload))
-	http.HandleFunc("/img/", handler.HandleImage) // 统一处理 GET/DELETE
+	http.HandleFunc("/img/", handler.HandleImage)
 
 	// 启动信息
 	fmt.Println("=== 极轻量图床启动成功 ===")

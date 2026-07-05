@@ -55,7 +55,7 @@ var defaultConfig = Config{
 	// 功能详细配置
 	AllowedTypes:     []string{"jpg", "jpeg", "png", "gif", "webp"},  // 允许的文件类型白名单
 	AutoCleanHours:   720,           // 自动清理：超过多少小时的文件被删除（默认30天=720小时）
-	LogFile:          "./pic-bed.log",  // 日志文件路径
+	LogFile:          "./logs/app.log",  // 日志文件路径
 	HomeAvatarURL:    "",            // 首页头像图片URL（支持本地路径或网络图片，空则使用默认emoji）
 }
 
