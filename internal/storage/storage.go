@@ -264,7 +264,6 @@ func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32) (string
 		return "", fmt.Errorf("webp file invalid")
 	}
 
-	os.Remove(srcPath)
 	return webpPath, nil
 }
 

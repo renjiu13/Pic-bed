@@ -118,6 +118,9 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 		if err := storage.ConvertToWebPAsync(fullPath, cfg.WebPQuality); err != nil {
 			logger.LogError(ip, fileName, "webp convert queue failed: "+err.Error())
 		}
+		if ext := strings.ToLower(filepath.Ext(fileName)); ext != "" && ext != ".webp" {
+			relativeURL = fmt.Sprintf("/img/%s/%s/%s.webp", year, month, strings.TrimSuffix(filepath.Base(fileName), ext))
+		}
 	}
 
 	logger.LogUpload(ip, fileName, relativeURL, fileHeader.Size)
@@ -155,6 +158,21 @@ func HandleImage(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet, http.MethodHead:
 		// GET/HEAD: 预览图片
+		if ext := strings.ToLower(filepath.Ext(fileName)); ext != "" && ext != ".webp" {
+			webpPath := strings.TrimSuffix(fullPath, ext) + ".webp"
+			if _, err := os.Stat(webpPath); err == nil {
+				http.Redirect(w, r, fmt.Sprintf("/img/%s/%s/%s", year, month, filepath.Base(webpPath)), http.StatusTemporaryRedirect)
+				return
+			}
+		} else if strings.EqualFold(filepath.Ext(fileName), ".webp") {
+			fallbackCandidates := []string{strings.TrimSuffix(fullPath, filepath.Ext(fullPath)) + ".png", strings.TrimSuffix(fullPath, filepath.Ext(fullPath)) + ".jpg", strings.TrimSuffix(fullPath, filepath.Ext(fullPath)) + ".jpeg", strings.TrimSuffix(fullPath, filepath.Ext(fullPath)) + ".gif"}
+			for _, candidate := range fallbackCandidates {
+				if _, err := os.Stat(candidate); err == nil {
+					fullPath = candidate
+					break
+				}
+			}
+		}
 		if info, err := os.Stat(fullPath); err == nil {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			w.Header().Set("ETag", fmt.Sprintf(`"%x"`, info.ModTime().Unix()))
