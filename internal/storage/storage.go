@@ -16,16 +16,16 @@ import (
 	"github.com/KarpelesLab/gowebp"
 )
 
-// StorageManager 管理文件存储
+// StorageManager 存储管理器
 type StorageManager struct {
-	baseDir     string
-	mu          sync.RWMutex
-	pathLocks   map[string]*sync.Mutex
-	stopCleanCh chan struct{}
-	cleanerDone chan struct{}
+	baseDir      string
+	mu           sync.RWMutex
+	pathLocks    map[string]*sync.Mutex
+	stopCleanCh  chan struct{}
+	cleanerDone  chan struct{}
 }
 
-// NewStorageManager 创建存储管理器
+// NewStorageManager 创建新的存储管理器
 func NewStorageManager(baseDir string) (*StorageManager, error) {
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, fmt.Errorf("create dir failed: %w", err)
@@ -56,7 +56,7 @@ func (sm *StorageManager) lockForPath(path string) *sync.Mutex {
 	return lock
 }
 
-// ValidateFileName 防止路径遍历
+// ValidateFileName 校验文件名
 func (sm *StorageManager) ValidateFileName(fileName string) error {
 	if strings.Contains(fileName, "..") || filepath.IsAbs(fileName) ||
 		strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
@@ -65,7 +65,7 @@ func (sm *StorageManager) ValidateFileName(fileName string) error {
 	return nil
 }
 
-// ValidatePath 检查路径是否在 baseDir 内
+// ValidatePath 校验路径是否在 baseDir 内
 func (sm *StorageManager) ValidatePath(targetPath string) error {
 	absTarget, _ := filepath.Abs(targetPath)
 	absBase, _ := filepath.Abs(sm.baseDir)
@@ -75,7 +75,7 @@ func (sm *StorageManager) ValidatePath(targetPath string) error {
 	return nil
 }
 
-// SaveFile 流式保存文件
+// SaveFile 保存文件
 func (sm *StorageManager) SaveFile(reader io.Reader, year, month, fileName string) (string, error) {
 	if err := sm.ValidateFileName(fileName); err != nil {
 		return "", err
@@ -135,7 +135,7 @@ func (sm *StorageManager) DeleteFile(year, month, fileName string) error {
 	return os.Remove(filePath)
 }
 
-// CleanOldFiles 清理超过指定小时数的文件
+// CleanOldFiles 清理指定小时数之前的旧文件
 func (sm *StorageManager) CleanOldFiles(hours int) (int, int64, error) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -161,7 +161,7 @@ func (sm *StorageManager) CleanOldFiles(hours int) (int, int64, error) {
 	return deletedCount, deletedSize, err
 }
 
-// StartAutoClean 启动自动清理协程
+// StartAutoClean 启动自动清理
 func (sm *StorageManager) StartAutoClean(hours int) {
 	if hours <= 0 {
 		return
@@ -186,7 +186,7 @@ func (sm *StorageManager) StartAutoClean(hours int) {
 	}()
 }
 
-// StopAutoClean 优雅关闭清理协程
+// StopAutoClean 停止自动清理
 func (sm *StorageManager) StopAutoClean() error {
 	close(sm.stopCleanCh)
 	select {
@@ -197,10 +197,10 @@ func (sm *StorageManager) StopAutoClean() error {
 	}
 }
 
-// ConvertToWebPAsync 在后台异步转换图片为 WebP，避免阻塞上传流程。
-func (sm *StorageManager) ConvertToWebPAsync(srcPath string, quality float32) error {
+// ConvertToWebPAsync 异步转换为 WebP 格式，不阻塞请求
+func (sm *StorageManager) ConvertToWebPAsync(srcPath string, quality float32, keepOriginal bool) error {
 	go func() {
-		if _, err := sm.ConvertToWebP(srcPath, quality); err != nil {
+		if _, err := sm.ConvertToWebP(srcPath, quality, keepOriginal); err != nil {
 			log.Printf("[storage] webp conversion failed for %s: %v", srcPath, err)
 		}
 	}()
@@ -208,13 +208,15 @@ func (sm *StorageManager) ConvertToWebPAsync(srcPath string, quality float32) er
 }
 
 // ConvertToWebP 转换为 WebP 格式
-func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32) (string, error) {
+// keepOriginal: 转换成功后是否保留原图
+func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32, keepOriginal bool) (string, error) {
 	if quality < 0 || quality > 100 {
 		return "", fmt.Errorf("quality must be 0-100")
 	}
 
 	ext := strings.ToLower(filepath.Ext(srcPath))
 
+	// GIF 和 WebP 不转换
 	if ext == ".gif" || ext == ".webp" {
 		return srcPath, nil
 	}
@@ -244,6 +246,7 @@ func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32) (string
 	}
 
 	webpPath := strings.TrimSuffix(srcPath, ext) + ".webp"
+
 	out, err := os.Create(webpPath)
 	if err != nil {
 		return "", err
@@ -264,10 +267,23 @@ func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32) (string
 		return "", fmt.Errorf("webp file invalid")
 	}
 
+	// ✨ 根据配置决定是否删除原图
+	if !keepOriginal {
+		// 使用文件锁确保并发安全
+		pathLock := sm.lockForPath(srcPath)
+		pathLock.Lock()
+		defer pathLock.Unlock()
+
+		// 二次确认文件存在后再删除
+		if _, err := os.Stat(srcPath); err == nil {
+			os.Remove(srcPath)
+		}
+	}
+
 	return webpPath, nil
 }
 
-// Close 关闭管理器
+// Close 关闭存储管理器
 func (sm *StorageManager) Close() error {
 	return sm.StopAutoClean()
 }

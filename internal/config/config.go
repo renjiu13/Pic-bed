@@ -10,23 +10,24 @@ import (
 type Config struct {
 	Port       int    `json:"port"`
 	StorageDir string `json:"storage_dir"`
-	MaxSize    int    `json:"max_size"` // 单位：MB
-	APIKey     string `json:"api_key"`  // Bearer Token，空则关闭鉴权
-	Timeout    int    `json:"timeout"`  // 请求超时时间，秒
+	MaxSize    int    `json:"max_size"`    // 单位：MB
+	APIKey     string `json:"api_key"`     // Bearer Token，用于鉴权
+	Timeout    int    `json:"timeout"`     // 请求超时时间，秒
 
-	// 功能开关 - 默认全部关闭
-	EnableLog         bool    `json:"enable_log"`          // 📝 操作日志：记录上传/删除/访问/错误
-	EnableDelete      bool    `json:"enable_delete"`       // 🗑️ 删除接口：DELETE /img/{path} 删除图片
-	EnableAutoClean   bool    `json:"enable_auto_clean"`   // 🧹 自动清理：定期删除超过N小时的文件
-	KeepOriginalName  bool    `json:"keep_original_name"`  // 📄 原始文件名：保留上传文件名+随机后缀
-	EnableWebPConvert bool    `json:"enable_webp_convert"` // 是否启用 WebP 转换
-	WebPQuality       float32 `json:"webp_quality"`        // WebP 质量 1-100
+	// 功能开关 - 对应各功能模块
+	EnableLog         bool `json:"enable_log"`            // 📝 日志功能：上传/删除/访问等
+	EnableDelete      bool `json:"enable_delete"`         // 🗑️ 删除功能：DELETE /img/{path} 删除文件
+	EnableAutoClean   bool `json:"enable_auto_clean"`     // 🧹 自动清理：定期删除超过指定时长的图片
+	KeepOriginalName  bool `json:"keep_original_name"`    // 🔤 保留原始文件名：否则使用随机文件名
+	EnableWebPConvert bool `json:"enable_webp_convert"`   // 自动转换 WebP 格式
+	WebPQuality       float32 `json:"webp_quality"`       // WebP 质量 1-100
+	KeepOriginalAfterWebP bool `json:"keep_original_after_webp"` // ✨ WebP 转换后是否保留原图
 
-	// 功能详细配置
-	AllowedTypes   []string `json:"allowed_types"`    // 允许的文件类型白名单
-	AutoCleanHours int      `json:"auto_clean_hours"` // 自动清理：超过多少小时的文件被删除
+	// 安全与访问控制
+	AllowedTypes   []string `json:"allowed_types"`    // 允许的文件类型列表
+	AutoCleanHours int      `json:"auto_clean_hours"` // 自动清理：删除超过指定小时的图片
 	LogFile        string   `json:"log_file"`         // 日志文件路径
-	HomeAvatarURL  string   `json:"home_avatar_url"`  // 首页头像图片URL（支持本地路径或网络图片）
+	HomeAvatarURL  string   `json:"home_avatar_url"`  // 首页头像URL，为空则显示默认emoji
 }
 
 const configFileName = "config.json"
@@ -37,27 +38,27 @@ var (
 	once      sync.Once
 )
 
-// 默认配置 - 所有功能开关默认关闭，用户按需开启
+// 默认配置 - 首次运行时自动生成默认配置文件，方便快速上手
 var defaultConfig = Config{
-	Port:       8080,     // 服务监听端口
-	StorageDir: "./data", // 图片存储目录
-	MaxSize:    10,       // 单文件最大大小（MB）
-	APIKey:     "",       // Bearer Token鉴权密钥，空则关闭鉴权
-	Timeout:    30,       // 请求超时时间（秒）
+	Port:       8080,        // 默认监听端口
+	StorageDir: "./data",    // 图片存储目录
+	MaxSize:    10,          // 单文件最大大小，MB
+	APIKey:     "",          // Bearer Token鉴权密钥
 
 	// 功能开关 - 默认全部关闭，按需开启
-	EnableLog:         false, // 📝 操作日志：记录上传/删除/访问/错误
-	EnableDelete:      false, // 🗑️ 删除接口：DELETE /img/{path} 删除图片
-	EnableAutoClean:   false, // 🧹 自动清理：定期删除超过N小时的文件
-	KeepOriginalName:  false, // 📄 原始文件名：保留上传文件名+随机后缀
-	EnableWebPConvert: false, // WebP 转换：默认关闭
-	WebPQuality:       80,    // WebP 质量：默认 80
+	EnableLog:         false, // 📝 日志功能：上传/删除/访问等
+	EnableDelete:      false, // 🗑️ 删除功能：DELETE /img/{path} 删除文件
+	EnableAutoClean:   false, // 🧹 自动清理：定期删除超过指定时长的图片
+	KeepOriginalName:  false, // 🔤 保留原始文件名：否则使用随机文件名
+	EnableWebPConvert: false, // WebP 格式转换，默认关闭
+	WebPQuality:       80,    // WebP 质量，默认 80
+	KeepOriginalAfterWebP: false, // ✨ WebP 转换后是否保留原图，默认不保留（节省空间）
 
-	// 功能详细配置
-	AllowedTypes:   []string{"jpg", "jpeg", "png", "gif", "webp"}, // 允许的文件类型白名单
-	AutoCleanHours: 720,                                           // 自动清理：超过多少小时的文件被删除（默认30天=720小时）
+	// 安全与访问控制
+	AllowedTypes:   []string{"jpg", "jpeg", "png", "gif", "webp"}, // 允许的文件类型
+	AutoCleanHours: 720,                                           // 自动清理：删除超过指定小时的图片（默认30天=720小时）
 	LogFile:        "./logs/app.log",                              // 日志文件路径
-	HomeAvatarURL:  "",                                            // 首页头像图片URL（支持本地路径或网络图片，空则使用默认emoji）
+	HomeAvatarURL:  "",                                            // 首页头像URL，为空则显示默认emoji
 }
 
 // InitConfig 初始化配置
@@ -72,13 +73,12 @@ func InitConfig() error {
 	return Reload()
 }
 
-// Reload 重新加载配置文件。
+// Reload 重新加载配置文件，支持热更新
 func Reload() error {
 	cfg, err := readConfigFromFile()
 	if err != nil {
 		return err
 	}
-
 	mu.Lock()
 	defer mu.Unlock()
 	globalCfg = cfg
@@ -104,7 +104,6 @@ func readConfigFromFile() (Config, error) {
 		cfg = defaultConfig
 		return cfg, nil
 	}
-
 	data, err := os.ReadFile(configFileName)
 	if err != nil {
 		return Config{}, err
@@ -115,7 +114,7 @@ func readConfigFromFile() (Config, error) {
 	return cfg, nil
 }
 
-// Get 获取全局配置
+// Get 获取当前配置
 func Get() Config {
 	mu.RLock()
 	defer mu.RUnlock()

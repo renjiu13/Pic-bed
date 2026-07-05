@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	defaultManager     *StorageManager
-	defaultManagerMu   sync.Mutex
-	defaultManagerOnce sync.Once
-	defaultManagerErr  error
+	defaultManager      *StorageManager
+	defaultManagerMu    sync.Mutex
+	defaultManagerOnce  sync.Once
+	defaultManagerErr   error
 )
 
-// Init 初始化默认存储管理器。
+// Init 初始化默认存储管理器
 func Init(baseDir string) error {
 	if baseDir == "" {
 		return fmt.Errorf("storage base dir is empty")
@@ -41,7 +41,7 @@ func ensureManager(baseDir string) (*StorageManager, error) {
 	return defaultManager, nil
 }
 
-// SaveFile 通过默认管理器保存文件。
+// SaveFile 保存文件（包级便捷函数）
 func SaveFile(reader io.Reader, baseDir, year, month, fileName string) (string, error) {
 	sm, err := ensureManager(baseDir)
 	if err != nil {
@@ -50,23 +50,23 @@ func SaveFile(reader io.Reader, baseDir, year, month, fileName string) (string, 
 	return sm.SaveFile(reader, year, month, fileName)
 }
 
-// ConvertToWebP 通过默认管理器转换图片为 WebP。
-func ConvertToWebP(inputPath string, quality float32) (string, error) {
+// ConvertToWebP 转换为 WebP 格式（包级便捷函数）
+func ConvertToWebP(inputPath string, quality float32, keepOriginal bool) (string, error) {
 	if defaultManager == nil {
 		return "", fmt.Errorf("storage not initialized")
 	}
-	return defaultManager.ConvertToWebP(inputPath, quality)
+	return defaultManager.ConvertToWebP(inputPath, quality, keepOriginal)
 }
 
-// ConvertToWebPAsync 通过默认管理器在后台异步转换图片为 WebP。
-func ConvertToWebPAsync(inputPath string, quality float32) error {
+// ConvertToWebPAsync 异步转换为 WebP 格式（包级便捷函数）
+func ConvertToWebPAsync(inputPath string, quality float32, keepOriginal bool) error {
 	if defaultManager == nil {
 		return fmt.Errorf("storage not initialized")
 	}
-	return defaultManager.ConvertToWebPAsync(inputPath, quality)
+	return defaultManager.ConvertToWebPAsync(inputPath, quality, keepOriginal)
 }
 
-// DeleteFile 通过默认管理器删除文件。
+// DeleteFile 删除文件（包级便捷函数）
 func DeleteFile(baseDir, year, month, fileName string) error {
 	sm, err := ensureManager(baseDir)
 	if err != nil {
@@ -75,7 +75,7 @@ func DeleteFile(baseDir, year, month, fileName string) error {
 	return sm.DeleteFile(year, month, fileName)
 }
 
-// StartAutoClean 启动默认管理器的自动清理。
+// StartAutoClean 启动自动清理（包级便捷函数）
 func StartAutoClean(baseDir string, hours int) {
 	sm, err := ensureManager(baseDir)
 	if err != nil {
@@ -85,7 +85,7 @@ func StartAutoClean(baseDir string, hours int) {
 	sm.StartAutoClean(hours)
 }
 
-// StopAutoClean 停止默认管理器的自动清理。
+// StopAutoClean 停止自动清理（包级便捷函数）
 func StopAutoClean() error {
 	if defaultManager == nil {
 		return nil
@@ -93,7 +93,7 @@ func StopAutoClean() error {
 	return defaultManager.StopAutoClean()
 }
 
-// Close 关闭默认存储管理器。
+// Close 关闭存储管理器
 func Close() error {
 	return StopAutoClean()
 }
