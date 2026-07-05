@@ -87,7 +87,14 @@ jobs:
           echo "New version: v$NEW_VERSION"
       
       - name: Build all platforms
-        run: bash build.sh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # 设置版本号环境变量，确保 build.sh 使用正确的版本
+          export VERSION=${{ steps.version.outputs.version }}
+          export BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          export GIT_COMMIT=$(git rev-parse --short HEAD)
+          bash build.sh
       
       - name: Generate SHA256 checksums
         run: |

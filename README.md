@@ -12,6 +12,7 @@
 - 🔒 **安全加固**：路径防护、扩展名白名单、可选 Bearer 鉴权
 - 🎯 **PicList 兼容**：完美支持 PicList 自定义图床
 - ⚙️ **按需开启**：8 大功能开关，默认全关
+- 🔄 **在线更新**：一键检查并更新到最新版本
 
 ---
 
@@ -62,6 +63,29 @@ curl -L https://github.com/renjiu13/Pic-bed/releases/latest/download/pic-bed-dar
 | `home_avatar_url` | "" | 首页头像 URL |
 
 修改配置后重启生效。
+
+---
+
+## 💻 命令行用法
+
+```bash
+# 查看版本
+pic-bed -v
+pic-bed --version
+
+# 查看帮助
+pic-bed -h
+pic-bed --help
+
+# 检查更新
+pic-bed check-update
+
+# 在线更新到最新版本
+pic-bed update
+
+# 启动服务（默认）
+pic-bed
+```
 
 ---
 
