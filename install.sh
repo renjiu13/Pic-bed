@@ -74,6 +74,12 @@ $SUDO curl -L --progress-bar \
   -o $INSTALL_DIR/pic-bed
 $SUDO chmod +x $INSTALL_DIR/pic-bed
 
+# ========== 创建全局命令软链接（修复点） ==========
+echo ""
+echo "🔗 创建全局命令..."
+$SUDO ln -sf $INSTALL_DIR/pic-bed /usr/local/bin/pic-bed
+echo "✓ 已创建软链接: /usr/local/bin/pic-bed"
+
 # ========== 配置 systemd 服务 ==========
 SERVICE_CREATED=false
 if command -v systemctl &> /dev/null; then
@@ -137,10 +143,17 @@ else
 fi
 
 echo ""
+echo "⚙️  快捷命令："
+echo "   pic-bed -v           # 查看版本"
+echo "   pic-bed -h           # 查看帮助"
+echo "   pic-bed check-update # 检查更新"
+echo "   pic-bed update       # 在线更新"
+echo "   pic-bed              # 启动服务"
+echo ""
 echo "⚙️  配置文件："
 echo "   首次运行自动生成 $INSTALL_DIR/config.json"
 echo ""
 echo "🔄 在线更新："
-echo "   $INSTALL_DIR/pic-bed check-update  # 检查更新"
-echo "   $INSTALL_DIR/pic-bed update        # 一键更新"
+echo "   pic-bed check-update  # 检查更新"
+echo "   pic-bed update        # 一键更新"
 echo ""
