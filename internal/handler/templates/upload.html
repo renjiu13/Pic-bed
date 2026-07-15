@@ -2,259 +2,348 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=800">
-    <title>图片上传 - Pic Bed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pic-bed上传</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px 20px;
-            background: #fff;
+            padding: 20px;
+            background: #fafafa;
         }
+
         .container {
-            text-align: center;
-            max-width: 500px;
+            max-width: 480px;
             width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
+
         h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
+            font-size: 1.5rem;
+            font-weight: 500;
             color: #000;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
+            text-align: center;
         }
-        .upload-area {
-            border: 2px dashed #ddd;
-            border-radius: 16px;
-            padding: 40px 20px;
-            margin-bottom: 20px;
-            transition: border-color 0.2s;
-            cursor: pointer;
-        }
-        .upload-area:hover {
-            border-color: #ff6b9d;
-        }
-        .upload-area.dragover {
-            border-color: #ff6b9d;
-            background: #fff5f8;
-        }
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-        .upload-text {
-            color: #666;
-            font-size: 0.95rem;
-            margin-bottom: 5px;
-        }
-        .upload-hint {
-            color: #999;
-            font-size: 0.8rem;
-        }
-        .file-input {
-            display: none;
-        }
+
         .api-key-section {
             margin-bottom: 20px;
-            text-align: left;
+            display: none;
         }
+
+        .api-key-section.show {
+            display: block;
+        }
+
         .api-key-section label {
             display: block;
             font-size: 0.85rem;
             color: #666;
             margin-bottom: 6px;
         }
+
         .api-key-section input {
             width: 100%;
-            padding: 10px 14px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            padding: 8px 12px;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
             font-size: 0.9rem;
             outline: none;
             transition: border-color 0.2s;
         }
+
         .api-key-section input:focus {
-            border-color: #ff6b9d;
+            border-color: #333;
         }
+
+        .upload-area {
+            border: 2px dashed #d0d0d0;
+            border-radius: 6px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+
+        .upload-area:hover {
+            border-color: #333;
+            background: #f5f5f5;
+        }
+
+        .upload-area.dragover {
+            border-color: #333;
+            background: #f0f0f0;
+            transform: scale(1.02);
+        }
+
+        .upload-text {
+            color: #333;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .file-input {
+            display: none;
+        }
+
         .upload-btn {
             width: 100%;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #ff6b9d 0%, #ffa3c4 100%);
+            padding: 10px;
+            background: #000;
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 4px;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: opacity 0.2s;
+            font-weight: 500;
         }
-        .upload-btn:hover {
-            opacity: 0.9;
+
+        .upload-btn:hover:not(:disabled) {
+            opacity: 0.8;
         }
+
         .upload-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+
         .result-area {
-            margin-top: 24px;
-            text-align: left;
             display: none;
+            margin-top: 20px;
+            animation: slideIn 0.3s ease;
         }
+
         .result-area.show {
             display: block;
         }
-        .result-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 10px;
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
+
         .result-preview {
             width: 100%;
             max-height: 200px;
             object-fit: contain;
-            border-radius: 8px;
             margin-bottom: 12px;
             background: #f5f5f5;
+            border-radius: 4px;
         }
+
         .result-url {
             display: flex;
             gap: 8px;
-            margin-bottom: 8px;
         }
+
         .result-url input {
             flex: 1;
             padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 0.8rem;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
+            font-size: 0.85rem;
             font-family: monospace;
-            background: #f9f9f9;
+            outline: none;
+            transition: border-color 0.2s;
         }
+
+        .result-url input:focus {
+            border-color: #333;
+        }
+
         .copy-btn {
-            padding: 8px 14px;
-            background: #f0f0f0;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.8rem;
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
+            font-size: 0.85rem;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            font-weight: 500;
         }
+
         .copy-btn:hover {
-            background: #e0e0e0;
+            background: #e8e8e8;
+            border-color: #999;
         }
-        .error-msg {
-            color: #e74c3c;
+
+        .copy-btn.copied {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .message {
             font-size: 0.85rem;
             margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: none;
+            animation: slideIn 0.2s ease;
         }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ef5350;
+        }
+
+        .message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+
         .footer {
-            margin-top: 40px;
-            font-size: 0.85rem;
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.8rem;
             color: #999;
         }
+
         .footer a {
-            color: inherit;
+            color: #666;
             text-decoration: none;
+            transition: color 0.2s;
         }
+
         .footer a:hover {
-            opacity: 0.6;
+            color: #000;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+                margin-bottom: 20px;
+            }
+
+            .result-url {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📤 图片上传</h1>
+        <h1>图片上传</h1>
 
         {{if .NeedAPIKey}}
-        <div class="api-key-section">
-            <label for="apiKey">API Key</label>
-            <input type="password" id="apiKey" placeholder="请输入 API Key">
+        <div class="api-key-section show">
+            <label>API Key</label>
+            <input type="password" id="apiKey" placeholder="输入 API Key">
         </div>
         {{end}}
 
         <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">🖼️</div>
-            <div class="upload-text">点击或拖拽图片到此处上传</div>
-            <div class="upload-hint">支持 {{.AllowedTypes}} · 最大 {{.MaxSize}}MB</div>
+            <div class="upload-text">点击或拖拽上传</div>
+            <div class="upload-hint">Ctrl+V 粘贴 · {{.AllowedTypes}} · 最大 {{.MaxSize}}MB</div>
         </div>
         <input type="file" class="file-input" id="fileInput" accept="image/*">
 
-        <button class="upload-btn" id="uploadBtn" disabled>选择图片后上传</button>
+        <button class="upload-btn" id="uploadBtn" disabled>上传</button>
 
         <div class="result-area" id="resultArea">
-            <div class="result-title">✅ 上传成功</div>
-            <img class="result-preview" id="resultPreview" alt="预览">
+            <img class="result-preview" id="resultPreview" alt="">
             <div class="result-url">
                 <input type="text" id="resultURL" readonly>
-                <button class="copy-btn" onclick="copyURL()">复制</button>
+                <button class="copy-btn" id="copyBtn">复制</button>
             </div>
         </div>
 
-        <div class="error-msg" id="errorMsg"></div>
+        <div class="message" id="message"></div>
     </div>
 
     <div class="footer">
-        <a href="https://github.com/renjiu13/Pic-bed" target="_blank">Pic Bed</a> · 极轻量私有图床
+        <a href="https://github.com/renjiu13/Pic-bed" target="_blank">
+            Pic Bed
+        </a> · 极轻量私有图床
     </div>
 
     <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const resultArea = document.getElementById('resultArea');
-        const resultPreview = document.getElementById('resultPreview');
-        const resultURL = document.getElementById('resultURL');
-        const errorMsg = document.getElementById('errorMsg');
-        const apiKeyInput = document.getElementById('apiKey');
+        // DOM 元素
+        const DOM = {
+            uploadArea: document.getElementById('uploadArea'),
+            fileInput: document.getElementById('fileInput'),
+            uploadBtn: document.getElementById('uploadBtn'),
+            resultArea: document.getElementById('resultArea'),
+            resultPreview: document.getElementById('resultPreview'),
+            resultURL: document.getElementById('resultURL'),
+            message: document.getElementById('message'),
+            apiKey: document.getElementById('apiKey'),
+            copyBtn: document.getElementById('copyBtn')
+        };
 
         let selectedFile = null;
 
-        uploadArea.addEventListener('click', () => fileInput.click());
-
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                handleFileSelect(e.dataTransfer.files[0]);
+        // ========== 消息提示 ==========
+        function showMessage(text, type = 'error') {
+            DOM.message.textContent = text;
+            DOM.message.className = `message show ${type}`;
+            if (type === 'success') {
+                setTimeout(() => DOM.message.classList.remove('show'), 3000);
             }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
-        });
-
-        function handleFileSelect(file) {
-            selectedFile = file;
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = '上传 ' + file.name;
-            errorMsg.textContent = '';
-            resultArea.classList.remove('show');
         }
 
-        uploadBtn.addEventListener('click', async () => {
-            if (!selectedFile) {
-                fileInput.click();
+        // ========== 文件处理 ==========
+        function handleFileSelect(file) {
+            // 验证文件
+            if (!file.type.startsWith('image/')) {
+                showMessage('请选择图片文件');
                 return;
             }
 
-            uploadBtn.disabled = true;
-            uploadBtn.textContent = '上传中...';
-            errorMsg.textContent = '';
+            selectedFile = file;
+            DOM.uploadBtn.disabled = false;
+            DOM.uploadBtn.textContent = `上传 - ${file.name}`;
+            DOM.message.classList.remove('show');
+            DOM.resultArea.classList.remove('show');
+        }
+
+        // ========== 上传逻辑 ==========
+        async function uploadFile() {
+            if (!selectedFile) {
+                DOM.fileInput.click();
+                return;
+            }
+
+            DOM.uploadBtn.disabled = true;
+            DOM.uploadBtn.textContent = '上传中...';
+            DOM.message.classList.remove('show');
 
             const formData = new FormData();
             formData.append('file', selectedFile);
@@ -262,47 +351,98 @@
             try {
                 const headers = {};
                 {{if .NeedAPIKey}}
-                const apiKey = apiKeyInput.value.trim();
-                if (!apiKey) {
-                    throw new Error('请输入 API Key');
-                }
+                const apiKey = DOM.apiKey.value.trim();
+                if (!apiKey) throw new Error('请输入 API Key');
                 headers['Authorization'] = 'Bearer ' + apiKey;
                 {{end}}
 
                 const response = await fetch('/upload', {
                     method: 'POST',
-                    headers: headers,
+                    headers,
                     body: formData
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    resultPreview.src = data.url;
-                    resultURL.value = window.location.origin + data.url;
-                    resultArea.classList.add('show');
+                    DOM.resultPreview.src = data.url;
+                    DOM.resultURL.value = window.location.origin + data.url;
+                    DOM.resultArea.classList.add('show');
                     selectedFile = null;
-                    fileInput.value = '';
-                    uploadBtn.textContent = '选择图片后上传';
-                    uploadBtn.disabled = true;
+                    DOM.fileInput.value = '';
+                    DOM.uploadBtn.textContent = '上传';
+                    DOM.uploadBtn.disabled = true;
+                    showMessage('上传成功！', 'success');
                 } else {
                     throw new Error(data.message || '上传失败');
                 }
             } catch (err) {
-                errorMsg.textContent = '❌ ' + err.message;
-                uploadBtn.textContent = '重新上传';
-                uploadBtn.disabled = false;
+                showMessage(err.message);
+                DOM.uploadBtn.textContent = '上传';
+                DOM.uploadBtn.disabled = selectedFile ? false : true;
+            }
+        }
+
+        // ========== 复制 URL ==========
+        function copyURL() {
+            DOM.resultURL.select();
+            document.execCommand('copy');
+            DOM.copyBtn.textContent = '已复制';
+            DOM.copyBtn.classList.add('copied');
+            setTimeout(() => {
+                DOM.copyBtn.textContent = '复制';
+                DOM.copyBtn.classList.remove('copied');
+            }, 1500);
+        }
+
+        // ========== 事件监听 ==========
+        // 点击上传
+        DOM.uploadArea.addEventListener('click', () => DOM.fileInput.click());
+        DOM.uploadBtn.addEventListener('click', uploadFile);
+        DOM.copyBtn.addEventListener('click', copyURL);
+
+        // 文件选择
+        DOM.fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
             }
         });
 
-        function copyURL() {
-            resultURL.select();
-            document.execCommand('copy');
-            const btn = event.target;
-            const originalText = btn.textContent;
-            btn.textContent = '已复制';
-            setTimeout(() => btn.textContent = originalText, 1500);
-        }
+        // 拖拽上传
+        DOM.uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            DOM.uploadArea.classList.add('dragover');
+        });
+
+        DOM.uploadArea.addEventListener('dragleave', () => {
+            DOM.uploadArea.classList.remove('dragover');
+        });
+
+        DOM.uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            DOM.uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        // ========== 粘贴上传（新增） ==========
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (let item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    handleFileSelect(file);
+                    break;
+                }
+            }
+        });
+
+        // 阻止全局拖拽
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
     </script>
 </body>
 </html>
