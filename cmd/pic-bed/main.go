@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/pic-bed/pic-bed/internal/compress"
 	"github.com/pic-bed/pic-bed/internal/config"
+	"github.com/pic-bed/pic-bed/internal/guard"
 	"github.com/pic-bed/pic-bed/internal/handler"
 	"github.com/pic-bed/pic-bed/internal/logger"
 	"github.com/pic-bed/pic-bed/internal/selfupdate"
@@ -150,6 +153,15 @@ func startServer() {
 		panic("Failed to init storage: " + err.Error())
 	}
 
+	// 初始化异步压缩队列（单 worker 串行，弱设备友好）
+	var compressQueue *compress.Queue
+	if cfg.EnableFixedSizeCompression && cfg.CompressQueueSize > 0 {
+		compressQueue = compress.NewQueue(cfg.CompressQueueSize)
+		compressQueue.Start()
+		handler.SetCompressQueue(compressQueue)
+		fmt.Printf("[CompressQueue] 异步压缩已启动, 队列大小=%d\n", cfg.CompressQueueSize)
+	}
+
 	go func() {
 		hup := make(chan os.Signal, 1)
 		signal.Notify(hup, syscall.SIGHUP)
@@ -189,14 +201,50 @@ func startServer() {
 		fmt.Println("鉴权状态: 未开启（公开上传）")
 	}
 
-	fmt.Printf("功能开关: 日志=%v 删除=%v 自动清理=%v\n",
-		cfg.EnableLog, cfg.EnableDelete, cfg.EnableAutoClean)
+	fmt.Printf("功能开关: 日志=%v 删除=%v 自动清理=%v 压缩=%v WebP转换=%v\n",
+		cfg.EnableLog, cfg.EnableDelete, cfg.EnableAutoClean,
+		cfg.EnableFixedSizeCompression, cfg.EnableWebPConvert)
 
 	// 启动服务
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		ReadTimeout:  time.Duration(cfg.Timeout) * time.Second,
 		WriteTimeout: time.Duration(cfg.Timeout) * time.Second,
+	}
+
+	// 优雅关闭的统一入口
+	var shutdownOnce sync.Once
+	gracefulShutdown := func() {
+		shutdownOnce.Do(func() {
+			fmt.Println("\n正在优雅关闭...")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err := server.Shutdown(ctx); err != nil {
+				fmt.Printf("Server shutdown error: %v\n", err)
+			}
+
+			if compressQueue != nil {
+				fmt.Println("等待压缩队列完成...")
+				compressQueue.Stop()
+			}
+
+			_ = logger.Close()
+			_ = storage.Close()
+		})
+	}
+
+	// 🛡️ 内存守护：超限时优雅关闭后自动重启
+	var memGuard *guard.MemoryGuard
+	if cfg.EnableMemoryGuard {
+		memGuard = guard.New(cfg.MemoryLimitMB, cfg.MemoryCheckInterval, func() {
+			fmt.Printf("[guard] 内存超限，触发优雅关闭后重启\n")
+			gracefulShutdown()
+		})
+		memGuard.Start()
+		fmt.Printf("[Guard] 内存守护已启动: 上限=%dMB 检查间隔=%ds\n",
+			cfg.MemoryLimitMB, cfg.MemoryCheckInterval)
 	}
 
 	quit := make(chan os.Signal, 1)
@@ -211,13 +259,8 @@ func startServer() {
 	<-quit
 	fmt.Println("\nShutdown signal received, exiting gracefully...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		fmt.Printf("Server shutdown error: %v\n", err)
+	if memGuard != nil {
+		memGuard.Stop()
 	}
-
-	_ = logger.Close()
-	_ = storage.Close()
+	gracefulShutdown()
 }

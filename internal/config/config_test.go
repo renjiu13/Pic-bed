@@ -62,6 +62,9 @@ func TestNormalizeFillsInvalidValues(t *testing.T) {
 		TargetFileSizeKB:         0,
 		CompressionQualityStart:  200,
 		WebPQuality:              -1,
+		CompressQueueSize:        -5,
+		MemoryLimitMB:            0,
+		MemoryCheckInterval:      0,
 		AutoCleanHours:           0,
 		AllowedTypes:             nil,
 	}
@@ -87,6 +90,15 @@ func TestNormalizeFillsInvalidValues(t *testing.T) {
 	}
 	if cfg.WebPQuality != 80 {
 		t.Fatalf("WebPQuality got %v", cfg.WebPQuality)
+	}
+	if cfg.CompressQueueSize != 100 {
+		t.Fatalf("CompressQueueSize got %d", cfg.CompressQueueSize)
+	}
+	if cfg.MemoryLimitMB != 200 {
+		t.Fatalf("MemoryLimitMB got %d", cfg.MemoryLimitMB)
+	}
+	if cfg.MemoryCheckInterval != 30 {
+		t.Fatalf("MemoryCheckInterval got %d", cfg.MemoryCheckInterval)
 	}
 	if cfg.AutoCleanHours != 720 {
 		t.Fatalf("AutoCleanHours got %d", cfg.AutoCleanHours)

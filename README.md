@@ -113,6 +113,7 @@ curl -L https://github.com/renjiu13/Pic-bed/releases/latest/download/pic-bed-dar
 | `enable_fixed_size_compression` | false | 开启固定大小压缩 |
 | `target_file_size_kb` | 500 | 目标大小（KB） |
 | `compression_quality_start` | 90 | 起始（最大）质量 1-100 |
+| `compress_queue_size` | 100 | 异步压缩队列大小（0=同步阻塞，>0=异步不阻塞上传） |
 
 **工作规则**：
 
@@ -120,6 +121,8 @@ curl -L https://github.com/renjiu13/Pic-bed/releases/latest/download/pic-bed-dar
 - gif / webp 自动跳过（不处理）
 - **小图保护**：原图已 ≤ 目标大小时原样保留，不重编码
 - 解码失败时保留原图文件
+- **异步模式**（`compress_queue_size > 0`）：上传立即返回原图 URL，后台串行压缩（弱设备友好）。压缩完成后访问原图 URL 自动重定向到 WebP
+- **同步模式**（`compress_queue_size = 0`）：上传时直接压缩，请求阻塞直到完成
 
 ### 🔄 WebP 转换
 
@@ -131,18 +134,47 @@ curl -L https://github.com/renjiu13/Pic-bed/releases/latest/download/pic-bed-dar
 | `webp_quality` | 80 | WebP 转换质量（1-100） |
 | `keep_original_after_webp` | false | 转换后保留原图 |
 
+### 🛡️ 内存守护
+
+专为弱内存设备（玩客云、树莓派等）设计。定期检查进程内存占用，超过阈值时优雅关闭服务并自动重启，防止 OOM。
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `enable_memory_guard` | false | 启用内存守护 |
+| `memory_limit_mb` | 200 | 内存上限（MB），超过则重启 |
+| `memory_check_interval` | 30 | 检查间隔（秒） |
+
+**工作机制**：
+
+1. 每隔 `memory_check_interval` 秒检查进程内存（`runtime.MemStats.Sys`）
+2. 超过 `memory_limit_mb` 时触发：优雅关闭 HTTP 服务 → 等待压缩队列完成 → 释放资源 → 自动重启
+3. Linux 使用 `syscall.Exec` 原地重启（PID 不变，systemd 友好）；其他平台启动新进程后退出
+
+**弱设备推荐配置**：
+
+```json
+{
+  "compress_queue_size": 50,
+  "enable_memory_guard": true,
+  "memory_limit_mb": 150,
+  "memory_check_interval": 20
+}
+```
+
 ### 📦🔄 压缩与转换协同模式
 
 固定压缩与 WebP 转换**可同时开启**，按优先级协同工作，而非互斥：
 
 ```
-上传图片
+上传图片 → 保存原图 → 立即返回原图 URL（请求结束）
   │
   ├─ 固定压缩开启？
-  │   ├─ 是 → 尝试压缩到目标大小
-  │   │       ├─ 成功（大图）→ 返回 webp，流程结束
-  │   │       ├─ 跳过（小图/gif/webp）→ 继续 ↓
-  │   │       └─ 失败（损坏文件）→ 流程结束，不兜底
+  │   ├─ 异步模式（queue_size > 0）→ 入队，后台串行压缩
+  │   │   ├─ 成功（大图）→ 删原图，生成 webp（访问原图 URL 自动重定向）
+  │   │   ├─ 跳过（小图/gif/webp）→ 原图保留
+  │   │   └─ 失败（损坏文件）→ 原图保留
+  │   ├─ 同步模式（queue_size = 0）→ 直接压缩（同上结果）
+  │   │   └─ 跳过时 → 继续 ↓
   │   └─ 否 → 继续 ↓
   │
   ├─ WebP 转换开启 且 固定压缩未处理？
@@ -150,14 +182,16 @@ curl -L https://github.com/renjiu13/Pic-bed/releases/latest/download/pic-bed-dar
   └─ 否 → 原样返回
 ```
 
-| 场景 | 固定压缩 | WebP 转换 | 最终结果 |
-|------|---------|-----------|---------|
-| 大图（jpg/png） | 二分压到目标大小 | 跳过 | 精确控大小的 webp |
-| 小图（已 ≤ 目标） | 跳过 | 兜底转换 | 转为 webp |
-| gif / webp | 跳过 | 跳过 | 原样保留 |
-| 损坏文件 | 失败 | 跳过 | 保留原图 |
-| 只开固定压缩 | 正常工作 | 不执行 | — |
-| 只开 WebP 转换 | 不执行 | 正常工作 | — |
+| 场景 | 固定压缩 | WebP 转换 | 上传返回 | 最终结果 |
+|------|---------|-----------|---------|---------|
+| 大图（jpg/png） | 异步压缩 | 跳过 | `.webp` URL | 压缩完成直接命中；未完成时回退原图 |
+| 小图（已 ≤ 目标） | 跳过 | 兜底转换 | 原图/webp URL | 转为 webp |
+| gif / webp | 跳过 | 跳过 | 原图 URL | 原样保留 |
+| 损坏文件 | 失败 | 跳过 | `.webp` URL | 访问时回退到原图 |
+| 只开固定压缩 | 正常工作 | 不执行 | `.webp` URL | 异步压缩完成直接命中 |
+| 只开 WebP 转换 | 不执行 | 正常工作 | webp URL | — |
+
+> **异步压缩优先返回 `.webp` URL**：jpg/png 上传后立即返回 `.webp` 后缀链接。压缩完成前访问该 URL，`HandleImage` 自动回退到原图；压缩完成后直接命中 WebP。gif/webp 保持原后缀。
 
 > `keep_original_after_webp` 仅在 WebP 转换路径生效；固定压缩路径始终删除原图。
 

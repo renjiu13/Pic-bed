@@ -28,6 +28,12 @@ type Config struct {
 	EnableFixedSizeCompression bool `json:"enable_fixed_size_compression"` // 📦 固定大小压缩开关
 	TargetFileSizeKB           int  `json:"target_file_size_kb"`           // 固定压缩目标大小（KB）
 	CompressionQualityStart    int  `json:"compression_quality_start"`    // 固定压缩起始（最大）质量 1-100
+	CompressQueueSize          int  `json:"compress_queue_size"`          // 异步压缩队列大小（0=同步）
+
+	// 🛡️ 内存守护：弱设备防 OOM
+	EnableMemoryGuard    bool `json:"enable_memory_guard"`     // 启用内存守护
+	MemoryLimitMB        int  `json:"memory_limit_mb"`         // 内存上限（MB），超过则重启
+	MemoryCheckInterval  int  `json:"memory_check_interval"`   // 内存检查间隔（秒）
 
 	// 安全与访问控制
 	AllowedTypes   []string `json:"allowed_types"`    // 允许的文件类型列表
@@ -64,6 +70,12 @@ var defaultConfig = Config{
 	EnableFixedSizeCompression: false, // 压缩到目标大小，默认关闭
 	TargetFileSizeKB:           500,   // 目标大小 500KB（适合博客图片）
 	CompressionQualityStart:    90,    // 起始（最大）质量 90
+	CompressQueueSize:          100,   // 异步压缩队列大小（0=同步阻塞，>0=异步不阻塞上传）
+
+	// 🛡️ 内存守护：弱设备防 OOM，默认关闭
+	EnableMemoryGuard:    false, // 内存守护，默认关闭
+	MemoryLimitMB:        200,   // 内存上限 200MB（玩客云等弱设备推荐）
+	MemoryCheckInterval:  30,    // 每 30 秒检查一次
 
 	// 安全与访问控制
 	AllowedTypes:   []string{"jpg", "jpeg", "png", "gif", "webp"}, // 允许的文件类型
@@ -132,13 +144,24 @@ func normalizeConfig(cfg *Config) {
 	if cfg.WebPQuality < 1 || cfg.WebPQuality > 100 {
 		cfg.WebPQuality = 80
 	}
+	if cfg.CompressQueueSize < 0 {
+		cfg.CompressQueueSize = 100
+	}
 
 	// ④ 自动清理时长兜底
 	if cfg.AutoCleanHours <= 0 {
 		cfg.AutoCleanHours = 720
 	}
 
-	// ⑤ 允许类型兜底
+	// ⑤ 内存守护参数兜底
+	if cfg.MemoryLimitMB <= 0 {
+		cfg.MemoryLimitMB = 200
+	}
+	if cfg.MemoryCheckInterval <= 0 {
+		cfg.MemoryCheckInterval = 30
+	}
+
+	// ⑥ 允许类型兜底
 	if len(cfg.AllowedTypes) == 0 {
 		cfg.AllowedTypes = []string{"jpg", "jpeg", "png", "gif", "webp"}
 	}

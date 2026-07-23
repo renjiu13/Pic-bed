@@ -16,6 +16,11 @@
   "enable_fixed_size_compression": false,
   "target_file_size_kb": 500,
   "compression_quality_start": 90,
+  "compress_queue_size": 100,
+
+  "enable_memory_guard": false,
+  "memory_limit_mb": 200,
+  "memory_check_interval": 30,
 
   "enable_webp_convert": false,
   "webp_quality": 80,
