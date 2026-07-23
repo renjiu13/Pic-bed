@@ -4,12 +4,22 @@
   "max_size": 10,
   "api_key": "",
   "timeout": 30,
+  "allowed_types": ["jpg", "jpeg", "png", "gif", "webp"],
+
   "enable_log": false,
+  "log_file": "./pic-bed.log",
   "enable_delete": false,
   "enable_auto_clean": false,
-  "keep_original_name": false,
-  "allowed_types": ["jpg", "jpeg", "png", "gif", "webp"],
   "auto_clean_hours": 720,
-  "log_file": "./pic-bed.log",
+  "keep_original_name": false,
+
+  "enable_fixed_size_compression": false,
+  "target_file_size_kb": 500,
+  "compression_quality_start": 90,
+
+  "enable_webp_convert": false,
+  "webp_quality": 80,
+  "keep_original_after_webp": false,
+
   "home_avatar_url": ""
 }

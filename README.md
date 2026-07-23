@@ -13,7 +13,7 @@
 - 🎯 **PicList 完美兼容**：支持自定义图床
 - ⚙️ **丰富功能开关**：默认全关，按需开启
 - 🔄 **在线更新**：一键检查并更新到最新版本
-- 🖼️ **WebP 自动转换**：上传后可选自动转为 WebP（节省空间）
+- 🖼️ **智能图片处理**：固定大小压缩 + WebP 转换，二者可协同工作
 - 📝 **保留原始文件名**：可选不使用随机文件名
 
 ---
@@ -59,22 +59,29 @@ curl -L https://github.com/renjiu13/Pic-bed/releases/latest/download/pic-bed-dar
   "storage_dir": "./data",
   "max_size": 10,
   "api_key": "",
-  "timeout": 60,
+  "timeout": 30,
+  "allowed_types": ["jpg", "jpeg", "png", "gif", "webp"],
+
   "enable_log": false,
+  "log_file": "./pic-bed.log",
   "enable_delete": false,
   "enable_auto_clean": false,
+  "auto_clean_hours": 720,
   "keep_original_name": false,
+
+  "enable_fixed_size_compression": false,
+  "target_file_size_kb": 500,
+  "compression_quality_start": 90,
+
   "enable_webp_convert": false,
   "webp_quality": 80,
   "keep_original_after_webp": false,
-  "allowed_types": ["jpg", "jpeg", "png", "gif", "webp"],
-  "auto_clean_hours": 720,
-  "log_file": "./logs/app.log",
+
   "home_avatar_url": ""
 }
 ```
 
-**主要配置说明**：
+### 基础配置
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
@@ -82,17 +89,77 @@ curl -L https://github.com/renjiu13/Pic-bed/releases/latest/download/pic-bed-dar
 | `storage_dir` | `./data` | 图片存储目录 |
 | `max_size` | 10 | 单文件大小上限（MB） |
 | `api_key` | `""` | Bearer Token（空 = 关闭鉴权） |
-| `timeout` | 60 | 请求超时时间（秒） |
+| `timeout` | 30 | 请求超时时间（秒） |
+| `allowed_types` | `["jpg",...]` | 允许上传的文件扩展名 |
+| `keep_original_name` | false | 保留原始文件名（否则随机） |
+| `home_avatar_url` | `""` | 首页头像 URL（空则显示默认 emoji） |
+
+### 日志与清理
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
 | `enable_log` | false | 启用操作日志 |
+| `log_file` | `./pic-bed.log` | 日志文件路径 |
 | `enable_delete` | false | 允许 DELETE 删除图片 |
 | `enable_auto_clean` | false | 启用自动清理 |
-| `keep_original_name` | false | 保留原始文件名（否则随机） |
+| `auto_clean_hours` | 720 | 自动清理阈值（小时，默认 30 天） |
+
+### 📦 固定大小压缩
+
+通过二分查找 WebP 质量参数，将图片压缩到目标大小。**仅调整质量，不缩放图像**，压缩成功后自动删除原图。
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `enable_fixed_size_compression` | false | 开启固定大小压缩 |
+| `target_file_size_kb` | 500 | 目标大小（KB） |
+| `compression_quality_start` | 90 | 起始（最大）质量 1-100 |
+
+**工作规则**：
+
+- 支持 jpg / jpeg / png，压缩为 WebP 后删除原图
+- gif / webp 自动跳过（不处理）
+- **小图保护**：原图已 ≤ 目标大小时原样保留，不重编码
+- 解码失败时保留原图文件
+
+### 🔄 WebP 转换
+
+将上传的图片异步转换为 WebP 格式。
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
 | `enable_webp_convert` | false | 上传后自动转为 WebP |
 | `webp_quality` | 80 | WebP 转换质量（1-100） |
-| `keep_original_after_webp` | false | WebP 转换后保留原图 |
-| `allowed_types` | `["jpg",...]` | 允许上传的文件扩展名 |
-| `auto_clean_hours` | 720 | 自动清理阈值（小时，默认 30 天） |
-| `home_avatar_url` | `""` | 首页头像 URL（空则显示默认） |
+| `keep_original_after_webp` | false | 转换后保留原图 |
+
+### 📦🔄 压缩与转换协同模式
+
+固定压缩与 WebP 转换**可同时开启**，按优先级协同工作，而非互斥：
+
+```
+上传图片
+  │
+  ├─ 固定压缩开启？
+  │   ├─ 是 → 尝试压缩到目标大小
+  │   │       ├─ 成功（大图）→ 返回 webp，流程结束
+  │   │       ├─ 跳过（小图/gif/webp）→ 继续 ↓
+  │   │       └─ 失败（损坏文件）→ 流程结束，不兜底
+  │   └─ 否 → 继续 ↓
+  │
+  ├─ WebP 转换开启 且 固定压缩未处理？
+  │   └─ 是 → 异步转换为 WebP
+  └─ 否 → 原样返回
+```
+
+| 场景 | 固定压缩 | WebP 转换 | 最终结果 |
+|------|---------|-----------|---------|
+| 大图（jpg/png） | 二分压到目标大小 | 跳过 | 精确控大小的 webp |
+| 小图（已 ≤ 目标） | 跳过 | 兜底转换 | 转为 webp |
+| gif / webp | 跳过 | 跳过 | 原样保留 |
+| 损坏文件 | 失败 | 跳过 | 保留原图 |
+| 只开固定压缩 | 正常工作 | 不执行 | — |
+| 只开 WebP 转换 | 不执行 | 正常工作 | — |
+
+> `keep_original_after_webp` 仅在 WebP 转换路径生效；固定压缩路径始终删除原图。
 
 ---
 
@@ -127,6 +194,16 @@ curl -F "file=@test.jpg" http://localhost:8080/upload
 
 ```bash
 curl -F "file=@test.jpg" -H "Authorization: Bearer 你的密钥" http://localhost:8080/upload
+```
+
+**响应格式**：
+
+```json
+{
+  "success": true,
+  "url": "/img/2026/07/abc123.webp",
+  "message": "upload success"
+}
 ```
 
 ---

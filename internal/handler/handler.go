@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/pic-bed/pic-bed/internal/compress"
 	"github.com/pic-bed/pic-bed/internal/config"
 	"github.com/pic-bed/pic-bed/internal/logger"
 	"github.com/pic-bed/pic-bed/internal/security"
@@ -113,8 +114,34 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if cfg.EnableWebPConvert {
-		fullPath := filepath.Join(cfg.StorageDir, year, month, fileName)
+	fullPath := filepath.Join(cfg.StorageDir, year, month, fileName)
+
+	// webpHandled 标记固定压缩是否已处理该文件（成功或失败），用于决定是否需要 WebP 转换兜底
+	webpHandled := false
+
+	// 📦 固定大小压缩优先：同步二分查找质量，精确压到目标大小，删除原图
+	if cfg.EnableFixedSizeCompression {
+		compressCfg := compress.Config{
+			TargetSizeKB:      cfg.TargetFileSizeKB,
+			InitialQuality:    cfg.CompressionQualityStart,
+			EnableCompression: true,
+		}
+		compressedPath, compErr := compress.CompressToTarget(fullPath, compressCfg)
+		if compErr != nil {
+			logger.LogError(ip, fileName, "compress failed: "+compErr.Error())
+			webpHandled = true // 压缩失败，不再兜底（避免对损坏文件重复尝试）
+		} else if compressedPath != fullPath {
+			relativeURL = fmt.Sprintf("/img/%s/%s/%s", year, month, filepath.Base(compressedPath))
+			webpHandled = true // 压缩成功，无需兜底
+		}
+		// 否则：固定压缩跳过（gif/webp/小图），webpHandled=false，允许 WebP 转换兜底
+	}
+
+	// 🔄 WebP 转换：与固定压缩协同——
+	//   固定压缩未开启时独立生效；
+	//   固定压缩开启但跳过该格式（gif/webp/小图）时兜底转换；
+	//   固定压缩已成功或失败时不重复处理。
+	if cfg.EnableWebPConvert && !webpHandled {
 		if err := storage.ConvertToWebPAsync(fullPath, cfg.WebPQuality, cfg.KeepOriginalAfterWebP); err != nil {
 			logger.LogError(ip, fileName, "webp convert queue failed: "+err.Error())
 		}
