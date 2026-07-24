@@ -188,6 +188,14 @@ func HandleImage(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Get()
 	ip := getClientIP(r)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+
+	// CORS preflight：浏览器/PicList 跨域删除时先发 OPTIONS
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	pathSuffix := strings.TrimPrefix(r.URL.Path, "/img/")
 	parts := strings.SplitN(pathSuffix, "/", 3)
@@ -249,15 +257,19 @@ func HandleImage(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || parts[0] != "Bearer" || parts[1] != cfg.APIKey {
+				logger.LogError(ip, fileName, "delete auth failed: missing or invalid Authorization header")
 				respondJSON(w, false, "", "invalid API key", http.StatusForbidden)
 				return
 			}
 		}
 
 		if !cfg.EnableDelete {
+			logger.LogError(ip, fileName, "delete rejected: enable_delete is false")
 			respondJSON(w, false, "", "delete disabled", http.StatusForbidden)
 			return
 		}
+
+		logger.LogAccess(ip, "DELETE "+fileName)
 
 		// 联动删除：删 webp 时回退删原图，删原图时连带删 webp
 		ext := strings.ToLower(filepath.Ext(fileName))
