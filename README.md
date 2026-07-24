@@ -216,7 +216,7 @@ pic-bed              # 启动服务
 | `/` | GET | 首页 |
 | `/upload` | GET/POST | 上传页面 + 上传接口（表单字段 `file`） |
 | `/img/{年}/{月}/{文件名}` | GET | 预览图片（支持 WebP 自动重定向） |
-| `/img/{年}/{月}/{文件名}` | DELETE | 删除图片（需开启 `enable_delete`） |
+| `/img/{年}/{月}/{文件名}` | DELETE | 删除图片（需开启 `enable_delete`，配置 `api_key` 时需鉴权） |
 
 **上传示例**：
 
@@ -240,9 +240,23 @@ curl -F "file=@test.jpg" -H "Authorization: Bearer 你的密钥" http://localhos
 }
 ```
 
+**删除示例**：
+
+```bash
+# 无鉴权
+curl -X DELETE http://localhost:8080/img/2026/07/abc123.webp
+
+# 带鉴权
+curl -X DELETE -H "Authorization: Bearer 你的密钥" http://localhost:8080/img/2026/07/abc123.webp
+```
+
+> 删除时支持联动清理：删除 `.webp` 时自动删除对应的原图，删除原图时自动清理对应的 `.webp`。压缩未完成时删除 `.webp` 会自动回退删除原图。
+
 ---
 
 ## 🎯 PicList 配置
+
+### 上传配置
 
 | 配置项 | 值 |
 |--------|-----|
@@ -252,6 +266,18 @@ curl -F "file=@test.jpg" -H "Authorization: Bearer 你的密钥" http://localhos
 | 请求头 | 鉴权时填 `{"Authorization": "Bearer 你的密钥"}` |
 | 自定义前缀 | `http://你的IP:8080` |
 | 返回 URL 路径 | `url` |
+
+### 删除配置
+
+PicList 删除时通过本地服务 `POST http://127.0.0.1:36677/delete` 调用，需在 PicList 自定义图床设置中配置删除接口：
+
+| 配置项 | 值 |
+|--------|-----|
+| 删除方法 | DELETE |
+| 删除地址 | 图片 URL 本身（如 `http://你的IP:8080/img/2026/07/abc123.webp`） |
+| 请求头 | 鉴权时填 `{"Authorization": "Bearer 你的密钥"}` |
+
+> Pic-bed 需开启 `enable_delete: true`。配置了 `api_key` 时，DELETE 请求也必须携带 `Authorization: Bearer 你的密钥` 头。
 
 ---
 

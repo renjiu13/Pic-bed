@@ -241,17 +241,65 @@ func HandleImage(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, fullPath)
 
 	case http.MethodDelete:
-		// DELETE: 删除图片（需开启开关）
+		// DELETE: 删除图片
 		w.Header().Set("Content-Type", "application/json")
+
+		// 鉴权检查：配置了 api_key 时，DELETE 也需要 Bearer Token
+		if cfg.APIKey != "" {
+			authHeader := r.Header.Get("Authorization")
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" || parts[1] != cfg.APIKey {
+				respondJSON(w, false, "", "invalid API key", http.StatusForbidden)
+				return
+			}
+		}
+
 		if !cfg.EnableDelete {
 			respondJSON(w, false, "", "delete disabled", http.StatusForbidden)
 			return
 		}
-		if err := storage.DeleteFile(cfg.StorageDir, year, month, fileName); err != nil {
-			logger.LogError(ip, fileName, "delete failed: "+err.Error())
-			respondJSON(w, false, "", err.Error(), http.StatusNotFound)
+
+		// 联动删除：删 webp 时回退删原图，删原图时连带删 webp
+		ext := strings.ToLower(filepath.Ext(fileName))
+		baseName := strings.TrimSuffix(fileName, ext)
+		deleted := false
+
+		// 尝试删除请求的文件
+		if err := storage.DeleteFile(cfg.StorageDir, year, month, fileName); err == nil {
+			deleted = true
+		}
+
+		// 删除关联文件
+		if deleted {
+			if ext == ".webp" {
+				// 删 webp 时，尝试删除可能存在的原图
+				for _, fallbackExt := range []string{".png", ".jpg", ".jpeg", ".gif"} {
+					storage.DeleteFile(cfg.StorageDir, year, month, baseName+fallbackExt)
+				}
+			} else if ext != "" && ext != ".gif" {
+				// 删原图时，尝试删除可能存在的 webp
+				storage.DeleteFile(cfg.StorageDir, year, month, baseName+".webp")
+			}
+		}
+
+		if !deleted {
+			// 请求的文件不存在，检查是否关联文件存在（如请求删 .webp 但只有原图）
+			if ext == ".webp" {
+				for _, fallbackExt := range []string{".png", ".jpg", ".jpeg", ".gif"} {
+					if err := storage.DeleteFile(cfg.StorageDir, year, month, baseName+fallbackExt); err == nil {
+						deleted = true
+						break
+					}
+				}
+			}
+		}
+
+		if !deleted {
+			logger.LogError(ip, fileName, "delete failed: file not found")
+			respondJSON(w, false, "", "file not found", http.StatusNotFound)
 			return
 		}
+
 		logger.LogDelete(ip, fileName)
 		respondJSON(w, true, "", "delete success", http.StatusOK)
 
