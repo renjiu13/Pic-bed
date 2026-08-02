@@ -206,10 +206,16 @@ func startServer() {
 		cfg.EnableFixedSizeCompression, cfg.EnableWebPConvert)
 
 	// 启动服务
+	// IdleTimeout：空闲连接超时，防止 keep-alive 连接堆积（弱设备关键参数）
+	// ReadHeaderTimeout：读取请求头超时，防止 slowloris 攻击
+	// MaxHeaderBytes：限制请求头大小，防止恶意大请求头耗尽内存
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		ReadTimeout:  time.Duration(cfg.Timeout) * time.Second,
-		WriteTimeout: time.Duration(cfg.Timeout) * time.Second,
+		Addr:              fmt.Sprintf(":%d", cfg.Port),
+		ReadTimeout:       time.Duration(cfg.Timeout) * time.Second,
+		WriteTimeout:      time.Duration(cfg.Timeout) * time.Second,
+		IdleTimeout:       120 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	// 优雅关闭的统一入口

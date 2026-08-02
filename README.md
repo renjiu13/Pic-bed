@@ -146,7 +146,7 @@ curl -L https://github.com/renjiu13/Pic-bed/releases/latest/download/pic-bed-dar
 
 **工作机制**：
 
-1. 每隔 `memory_check_interval` 秒检查进程内存（`runtime.MemStats.Sys`）
+1. 每隔 `memory_check_interval` 秒先触发 GC，再测量活跃堆内存（`HeapAlloc`）
 2. 超过 `memory_limit_mb` 时触发：优雅关闭 HTTP 服务 → 等待压缩队列完成 → 释放资源 → 自动重启
 3. Linux 使用 `syscall.Exec` 原地重启（PID 不变，systemd 友好）；其他平台启动新进程后退出
 

@@ -23,6 +23,9 @@ type StorageManager struct {
 	pathLocks   map[string]*sync.Mutex
 	stopCleanCh chan struct{}
 	cleanerDone chan struct{}
+	// pathLocks 清理相关
+	lockCleanStop chan struct{}
+	lockCleanDone chan struct{}
 }
 
 // NewStorageManager 创建新的存储管理器
@@ -31,12 +34,53 @@ func NewStorageManager(baseDir string) (*StorageManager, error) {
 		return nil, fmt.Errorf("create dir failed: %w", err)
 	}
 
-	return &StorageManager{
-		baseDir:     baseDir,
-		pathLocks:   make(map[string]*sync.Mutex),
-		stopCleanCh: make(chan struct{}),
-		cleanerDone: make(chan struct{}),
-	}, nil
+	sm := &StorageManager{
+		baseDir:       baseDir,
+		pathLocks:     make(map[string]*sync.Mutex),
+		stopCleanCh:   make(chan struct{}),
+		cleanerDone:   make(chan struct{}),
+		lockCleanStop: make(chan struct{}),
+		lockCleanDone: make(chan struct{}),
+	}
+
+	// 启动 pathLocks 定期清理（每 10 分钟清理一次空闲锁）
+	go sm.lockCleaner()
+
+	return sm, nil
+}
+
+// lockCleaner 定期清理 pathLocks 中未被持有的锁
+// 防止 map 随上传/删除无限增长
+func (sm *StorageManager) lockCleaner() {
+	defer close(sm.lockCleanDone)
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			sm.cleanIdleLocks()
+		case <-sm.lockCleanStop:
+			return
+		}
+	}
+}
+
+// cleanIdleLocks 清理当前未被持有的路径锁
+// 通过 TryLock 检测：能锁住说明没有其他 goroutine 持有，可安全删除
+func (sm *StorageManager) cleanIdleLocks() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	// 用写锁遍历，尝试 TryLock 每个锁
+	// TryLock 成功 = 没人持有，可安全删除
+	// TryLock 失败 = 有人正在使用，跳过
+	for path, lock := range sm.pathLocks {
+		if lock.TryLock() {
+			lock.Unlock()
+			delete(sm.pathLocks, path)
+		}
+	}
 }
 
 func (sm *StorageManager) lockForPath(path string) *sync.Mutex {
@@ -197,7 +241,12 @@ func (sm *StorageManager) StopAutoClean() error {
 	}
 }
 
+// webpSem 限制 WebP 转换并发数，防止高并发上传时 goroutine 飙升
+// 弱设备（玩客云等）设为 2：既保证上传不阻塞，又限制内存峰值
+var webpSem = make(chan struct{}, 2)
+
 // ConvertToWebPAsync 异步转换为 WebP 格式，不阻塞请求。
+// 使用信号量控制并发（最多 2 个同时转换），防止弱设备内存飙升。
 // keepOriginal 为可选参数，兼容旧调用方式。
 func (sm *StorageManager) ConvertToWebPAsync(srcPath string, quality float32, keepOriginal ...bool) error {
 	preserveOriginal := false
@@ -206,6 +255,10 @@ func (sm *StorageManager) ConvertToWebPAsync(srcPath string, quality float32, ke
 	}
 
 	go func() {
+		// 信号量：获取名额才能执行，满了就等（不丢弃，保证最终一致性）
+		webpSem <- struct{}{}
+		defer func() { <-webpSem }()
+
 		if _, err := sm.ConvertToWebP(srcPath, quality, preserveOriginal); err != nil {
 			log.Printf("[storage] webp conversion failed for %s: %v", srcPath, err)
 		}
@@ -300,5 +353,9 @@ func (sm *StorageManager) ConvertToWebP(srcPath string, quality float32, keepOri
 
 // Close 关闭存储管理器
 func (sm *StorageManager) Close() error {
+	// 停止锁清理器
+	close(sm.lockCleanStop)
+	<-sm.lockCleanDone
+
 	return sm.StopAutoClean()
 }

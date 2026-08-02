@@ -71,6 +71,9 @@ func (g *MemoryGuard) watch() {
 		case <-g.stopCh:
 			return
 		case <-ticker.C:
+			// 先触发 GC 回收垃圾，再测量真实内存占用
+			// 避免因 GC 延迟导致误判（Go 默认 2 分钟才自动 GC）
+			runtime.GC()
 			used := CurrentMemoryMB()
 			if used > float64(g.limitMB) {
 				log.Printf("[guard] ⚠️ 内存超限! 当前 %.1fMB > 上限 %dMB，触发重启", used, g.limitMB)
@@ -85,11 +88,12 @@ func (g *MemoryGuard) watch() {
 	}
 }
 
-// CurrentMemoryMB 获取当前进程内存占用（MB）
+// CurrentMemoryMB 获取当前进程实际堆内存占用（MB）
+// 使用 HeapAlloc 而非 Sys：Sys 单调递增不反映真实占用，HeapAlloc 是 GC 后活跃堆内存
 func CurrentMemoryMB() float64 {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	return float64(m.Sys) / 1024 / 1024
+	return float64(m.HeapAlloc) / 1024 / 1024
 }
 
 // restart 重启当前进程
@@ -139,9 +143,9 @@ func ForceGC() {
 func MemoryReport() string {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	return fmt.Sprintf("Sys=%.1fMB Heap=%.1fMB Stack=%.1fMB",
-		float64(m.Sys)/1024/1024,
+	return fmt.Sprintf("Heap=%.1fMB Sys=%.1fMB Stack=%.1fMB",
 		float64(m.HeapAlloc)/1024/1024,
+		float64(m.Sys)/1024/1024,
 		float64(m.StackInuse)/1024/1024,
 	)
 }
